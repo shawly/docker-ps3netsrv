@@ -5,7 +5,7 @@ This is a Docker container for PS3NetSvr.
 
 ---
 
-[![PS3NetSvr logo](https://images.weserv.nl/?url=raw.githubusercontent.com/jlesage/docker-templates/master/jlesage/images/filebot-icon.png&w=200)](http://www.filebot.net/)[![PS3NetSvr](https://dummyimage.com/400x110/ffffff/575757&text=PS3NetSvr)](http://www.filebot.net/)
+[![PS3NetSvr logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsvr/master/ps3netsvr-icon.png&w=200)](https://github.com/aldostools/webMAN-MOD)[![PS3NetSvr](https://dummyimage.com/400x110/ffffff/575757&text=PS3NetSvr)](https://github.com/aldostools/webMAN-MOD)
 
 PS3NetSvr for WebMAN-MOD
 
