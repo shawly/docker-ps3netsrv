@@ -17,7 +17,7 @@ ADD ps3netsvr-builder/ps3netsvr.tar.gz /
 COPY rootfs/ /
 
 # Set environment variables.
-ENV APP_NAME="PS3NetSvr"
+ENV APP_NAME="PS3NetSvr" \
     TAKE_CONFIG_OWNERSHIP="0"
 
 # Define mountable directories.
