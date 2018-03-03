@@ -15,5 +15,5 @@ before_script:
 
 script:
   - echo "Starting build of Docker image..."
-  - ./makemkv-builder/run.sh
+  - ./ps3netsvr-builder/run.sh
   - docker build --no-cache --pull -t $TRAVIS_REPO_SLUG:$TRAVIS_JOB_ID .
