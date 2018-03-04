@@ -7,7 +7,7 @@ set -e # Exit immediately if a command exits with a non-zero status.
 set -u # Treat unset variables as an error.
 
 # Build PS3NetSvr self-contained version.
-./ps3netsvr-builder/run.sh
+./ps3netsrv-builder/run.sh
 
 # Start the docker container build.
 docker build -t $IMAGE_NAME .

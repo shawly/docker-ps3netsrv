@@ -1,7 +1,7 @@
 #
-# ps3netsvr Dockerfile
+# ps3netsrv Dockerfile
 #
-# https://github.com/shawly/docker-ps3netsvr
+# https://github.com/shawly/docker-ps3netsrv
 #
 
 # Pull base image.
@@ -11,7 +11,7 @@ FROM jlesage/baseimage:alpine-3.6
 WORKDIR /tmp
 
 # Install PS3NetSvr.
-ADD ps3netsvr-builder/ps3netsvr.tar.gz /
+ADD ps3netsrv-builder/ps3netsrv.tar.gz /
 
 # Add files.
 COPY rootfs/ /
@@ -28,8 +28,8 @@ EXPOSE 38008
 
 # Metadata.
 LABEL \
-      org.label-schema.name="ps3netsvr" \
+      org.label-schema.name="ps3netsrv" \
       org.label-schema.description="Docker container for PS3NetSvr" \
       org.label-schema.version="unknown" \
-      org.label-schema.vcs-url="https://github.com/shawly/docker-ps3netsvr" \
+      org.label-schema.vcs-url="https://github.com/shawly/docker-ps3netsrv" \
       org.label-schema.schema-version="1.0"
