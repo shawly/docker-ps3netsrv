@@ -1,18 +1,18 @@
-# Docker container for ps3netsvr
-[![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsvr.svg)](https://hub.docker.com/r/shawly/ps3netsvr/) [![Docker Image](https://images.microbadger.com/badges/image/shawly/ps3netsvr.svg)](http://microbadger.com/#/images/shawly/ps3netsvr) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsvr.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsvr) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsvr.svg)](https://github.com/shawly/docker-ps3netsvr/releases/latest) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/JocelynLeSage)
+# Docker container for ps3netsrv
+[![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) [![Docker Image](https://images.microbadger.com/badges/image/shawly/ps3netsrv.svg)](http://microbadger.com/#/images/shawly/ps3netsrv) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/JocelynLeSage)
 
-This is a Docker container for ps3netsvr.
+This is a Docker container for ps3netsrv.
 
 ---
 
-[![ps3netsvr logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsvr/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/webMAN-MOD)[![ps3netsvr](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsvr)](https://github.com/aldostools/webMAN-MOD)
+[![ps3netsrv logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsrv/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/webMAN-MOD)[![ps3netsrv](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsrv)](https://github.com/aldostools/webMAN-MOD)
 
-ps3netsvr for WebMAN-MOD
+ps3netsrv for WebMAN-MOD
 
 ---
 ## Table of Content
 
-   * [Docker container for ps3netsvr](#docker-container-for-ps3netsvr)
+   * [Docker container for ps3netsrv](#docker-container-for-ps3netsrv)
       * [Table of Content](#table-of-content)
       * [Quick Start](#quick-start)
       * [Usage](#usage)
@@ -30,13 +30,13 @@ ps3netsvr for WebMAN-MOD
 **NOTE**: The Docker command provided in this quick start is given as an example
 and parameters should be adjusted to your need.
 
-Launch the ps3netsvr docker container with the following command:
+Launch the ps3netsrv docker container with the following command:
 ```
 docker run -d \
-    --name=ps3netsvr \
+    --name=ps3netsrv \
     -p 38008:38008 \
     -v $HOME:/games:rw \
-    shawly/ps3netsvr
+    shawly/ps3netsrv
 ```
 
 Where:
@@ -47,11 +47,11 @@ Where:
 
 ```
 docker run [-d] \
-    --name=ps3netsvr \
+    --name=ps3netsrv \
     [-e <VARIABLE_NAME>=<VALUE>]... \
     [-v <HOST_DIR>:<CONTAINER_DIR>[:PERMISSIONS]]... \
     [-p <HOST_PORT>:<CONTAINER_PORT>]... \
-    shawly/ps3netsvr
+    shawly/ps3netsrv
 ```
 | Parameter | Description |
 |-----------|-------------|
@@ -85,7 +85,7 @@ format: `<HOST_DIR>:<CONTAINER_DIR>[:PERMISSIONS]`.
 
 | Container path  | Permissions | Description |
 |-----------------|-------------|-------------|
-|`/games`| rw | This is the path ps3netsvr will serve to clients. |
+|`/games`| rw | This is the path ps3netsrv will serve to clients. |
 
 ### Ports
 
@@ -96,7 +96,7 @@ container cannot be changed, but you are free to use any port on the host side.
 
 | Port | Mapping to host | Description |
 |------|-----------------|-------------|
-| 38008 | Mandatory | Port used for ps3netsvr. |
+| 38008 | Mandatory | Port used for ps3netsrv. |
 
 ### Changing Parameters of a Running Container
 
@@ -109,11 +109,11 @@ re-create the container:
 
   1. Stop the container (if it is running):
 ```
-docker stop ps3netsvr
+docker stop ps3netsrv
 ```
   2. Remove the container:
 ```
-docker rm ps3netsvr
+docker rm ps3netsrv
 ```
   3. Create/start the container using the `docker run` command, by adjusting
      parameters as needed.
@@ -129,7 +129,7 @@ ports are part of the example.
 ```yaml
 version: '3'
 services:
-  ps3netsvr:
+  ps3netsrv:
     build: .
     ports:
       - "38008:38008"
@@ -144,15 +144,15 @@ the Docker image, the following steps can be followed:
 
   1. Fetch the latest image:
 ```
-docker pull shawly/ps3netsvr
+docker pull shawly/ps3netsrv
 ```
   2. Stop the container:
 ```
-docker stop ps3netsvr
+docker stop ps3netsrv
 ```
   3. Remove the container:
 ```
-docker rm ps3netsvr
+docker rm ps3netsrv
 ```
   4. Start the container using the `docker run` command.
 
@@ -186,4 +186,4 @@ be given the container.
 Having troubles with the container or have questions?  Please
 [create a new issue].
 
-[create a new issue]: https://github.com/shawly/docker-ps3netsvr/issues
+[create a new issue]: https://github.com/shawly/docker-ps3netsrv/issues

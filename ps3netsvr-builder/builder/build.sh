@@ -11,8 +11,8 @@ usage() {
     echo "usage: $(basename $0) OUTPUT_DIR [ROOT_EXEC_DIR]
   Arguments:
     OUTPUT_DIR     Directory where the tarball will be copied to.
-    ROOT_EXEC_DIR  Root directory where ps3netsvr will be located at execution
-                   time.  Default: '/opt/ps3netsvr'.
+    ROOT_EXEC_DIR  Root directory where ps3netsrv will be located at execution
+                   time.  Default: '/opt/ps3netsrv'.
 "
 }
 
@@ -28,9 +28,9 @@ elif [ -n "$2" ] && [[ $2 != /* ]]; then
 fi
 
 TARBALL_DIR="$1"
-ROOT_EXEC_DIR="${2:-/opt/ps3netsvr}"
-BUILD_DIR=/tmp/ps3netsvr-build
-INSTALL_BASEDIR=/tmp/ps3netsvr-install
+ROOT_EXEC_DIR="${2:-/opt/ps3netsrv}"
+BUILD_DIR=/tmp/ps3netsrv-build
+INSTALL_BASEDIR=/tmp/ps3netsrv-install
 INSTALL_DIR=$INSTALL_BASEDIR$ROOT_EXEC_DIR
 
 mkdir -p "$TARBALL_DIR"
@@ -45,18 +45,18 @@ apt-get install -y \
     build-essential
 
 #
-# ps3netsvr
+# ps3netsrv
 #
 cd "$BUILD_DIR"
-echo "Building ps3netsvr..."
+echo "Building ps3netsrv..."
 cp -r /builder/* $BUILD_DIR
 mv Makefile Makefile.win
 mv Makefile.linux Makefile
 make
-chmod +x ps3netsvr
-cp ps3netsvr $INSTALL_DIR
+chmod +x ps3netsrv
+cp ps3netsrv $INSTALL_DIR
 
 echo "Creating tarball..."
-tar -zcf "$TARBALL_DIR/ps3netsvr.tar.gz" -C "$INSTALL_BASEDIR" "${ROOT_EXEC_DIR:1}" --owner=0 --group=0
+tar -zcf "$TARBALL_DIR/ps3netsrv.tar.gz" -C "$INSTALL_BASEDIR" "${ROOT_EXEC_DIR:1}" --owner=0 --group=0
 
-echo "$TARBALL_DIR/ps3netsvr.tar.gz created successfully!"
+echo "$TARBALL_DIR/ps3netsrv.tar.gz created successfully!"
