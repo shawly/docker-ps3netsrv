@@ -1,7 +1,7 @@
 # Docker container for ps3netsrv
 [![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) [![Docker Image](https://images.microbadger.com/badges/image/shawly/ps3netsrv.svg)](http://microbadger.com/#/images/shawly/ps3netsrv) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/JocelynLeSage)
 
-This is a Docker container for ps3netsrv.
+This is a Docker container for ps3netsrv. (Credit for the baseimage goes to [jlesage](https://github.com/jlesage/docker-baseimage))
 
 ---
 
