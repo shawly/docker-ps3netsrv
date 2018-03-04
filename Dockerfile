@@ -5,7 +5,7 @@
 #
 
 # Pull base image.
-FROM jlesage/baseimage:alpine-3.6
+FROM jlesage/baseimage:debian-8
 
 # Define working directory.
 WORKDIR /tmp
