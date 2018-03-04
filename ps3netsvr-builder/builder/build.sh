@@ -59,4 +59,8 @@ cp ps3netsrv $INSTALL_DIR
 echo "Creating tarball..."
 tar -zcf "$TARBALL_DIR/ps3netsrv.tar.gz" -C "$INSTALL_BASEDIR" "${ROOT_EXEC_DIR:1}" --owner=0 --group=0
 
+ls -la $BUILD_DIR
+ls -la $INSTALL_DIR
+ls -la $TARBALL_DIR
+
 echo "$TARBALL_DIR/ps3netsrv.tar.gz created successfully!"
