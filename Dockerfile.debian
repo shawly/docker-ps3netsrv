@@ -5,13 +5,10 @@
 #
 
 # Pull base image.
-FROM jlesage/baseimage:alpine-3.9-glibc
+FROM jlesage/baseimage:debian-9
 
 # Define working directory.
 WORKDIR /tmp
-
-# Install dependencies
-RUN apk add libstdc++
 
 # Install ps3netsrv.
 ADD ps3netsrv-builder/ps3netsrv.tar.gz /

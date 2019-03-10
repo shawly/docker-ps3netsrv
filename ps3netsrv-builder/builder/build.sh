@@ -49,9 +49,7 @@ apt-get install -y \
 #
 cd "$BUILD_DIR"
 echo "Building ps3netsrv..."
-cp -r /builder/* $BUILD_DIR
-mv Makefile Makefile.win
-mv Makefile.linux Makefile
+cp -rv /builder/* $BUILD_DIR
 make
 chmod +x ps3netsrv
 cp ps3netsrv $INSTALL_DIR
