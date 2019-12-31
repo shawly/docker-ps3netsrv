@@ -27,16 +27,21 @@ ENV PS3NETSRV_REPO=${PS3NETSRV_REPO} \
     PS3NETSRV_DIR=${PS3NETSRV_DIR} \
     PS3NETSRV_BRANCH=${PS3NETSRV_BRANCH}
 
+# Change working dir.
+WORKDIR /tmp/repo
+
 # Install deps and build binary.
 RUN \
   echo "**** install build packages ****" && \
-  apk add --updates --no-cache \
+  apk add --update --no-cache \
     git \
     build-base \
     meson \
-    mbedtls-dev && \
+    mbedtls-dev \
+    tar && \
   echo "**** build ps3netsrv ****" && \
-  git clone ${PS3NETSRV_REPO} /tmp/repo --branch ${PS3NETSRV_BRANCH} --single-branch && \
+  wget "${PS3NETSRV_REPO}/archive/${PS3NETSRV_BRANCH}.tar.gz" -O repo.tar.gz && \
+  tar -xvf repo.tar.gz --strip 1 && \
   cd /tmp/repo/${PS3NETSRV_DIR} && \
   meson build --buildtype=release && \
   ninja -C build/
@@ -74,6 +79,8 @@ RUN \
   groupmod -g 1000 users && \
   useradd -u 911 -U -d /config -s /bin/false abc && \
   usermod -G users abc && \
+  mkdir -p /var/log/ps3netsrv && \
+  chown -R 65534:65534 /var/log/ps3netsrv && \
   echo "**** cleanup ****" && \
   rm -rf /tmp/*
 
@@ -90,6 +97,9 @@ EXPOSE 38008
 LABEL \
       org.label-schema.name="ps3netsrv" \
       org.label-schema.description="Docker container for ps3netsrv" \
-      org.label-schema.version="1.2.0" \
+      org.label-schema.version="unknown" \
       org.label-schema.vcs-url="https://github.com/shawly/docker-ps3netsrv" \
       org.label-schema.schema-version="1.0"
+
+# Start s6.
+ENTRYPOINT ["/init"]
