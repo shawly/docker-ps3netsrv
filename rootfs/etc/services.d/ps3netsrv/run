@@ -1,4 +1,3 @@
-#!/usr/bin/with-contenv bash
-
-exec \
-  s6-setuidgid abc ps3netsrv /games
+#!/usr/bin/execlineb -P
+s6-setuidgid ps3netsrv
+/usr/local/bin/ps3netsrv /games
