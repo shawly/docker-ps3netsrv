@@ -14,6 +14,7 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
 
    * [Docker container for ps3netsrv](#docker-container-for-ps3netsrv)
       * [Table of Content](#table-of-content)
+      * [Supported Architectures](#supported-architectures)
       * [Quick Start](#quick-start)
       * [Usage](#usage)
          * [Environment Variables](#environment-variables)
@@ -24,6 +25,20 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
       * [Docker Image Update](#docker-image-update)
       * [User/Group IDs](#usergroup-ids)
       * [Support or Contact](#support-or-contact)
+
+## Architectures
+
+The architectures supported by this image are:
+
+| Architecture | Tag | Status |
+| :----: | --- | ------ |
+| x86-64 | amd64-latest | working |
+| arm64 | arm64v8-latest | experimental |
+| armhf | arm32v6-latest | experimental |
+
+Lo and behold this is the first ps3netsrv container with experimental arm32 and arm64 support!  
+*I'm declaring this as **experimental** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it.*  
+*I would be glad if you could [create a small report](https://github.com/shawly/docker-ps3netsrv/issues/new/choose) (choose ARM Compatibility Report) to tell me which device you've tested and if it's working or not.*
 
 ## Quick Start
 
