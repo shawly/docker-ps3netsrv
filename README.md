@@ -26,7 +26,7 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
       * [User/Group IDs](#usergroup-ids)
       * [Support or Contact](#support-or-contact)
 
-## Architectures
+## Supported Architectures
 
 The architectures supported by this image are:
 
