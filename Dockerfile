@@ -54,6 +54,7 @@ RUN \
 FROM alpine:${ALPINE_VERSION}
 
 ARG S6_OVERLAY_RELEASE
+ENV S6_OVERLAY_RELEASE=${S6_OVERLAY_RELEASE}
 
 # Download S6 Overlay
 ADD ${S6_OVERLAY_RELEASE} /tmp/s6overlay.tar.gz
@@ -82,7 +83,7 @@ RUN \
     rm -rf /tmp/*
 
 # Add files.
-ADD rootfs/ /
+COPY rootfs/ /
 
 # Define mountable directories.
 VOLUME ["/games"]
