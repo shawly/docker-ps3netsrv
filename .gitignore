@@ -1,4 +1,3 @@
 build.sh
 build.config
 qemu
-.build.config.swp
