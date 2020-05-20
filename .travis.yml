@@ -11,7 +11,7 @@ services:
 
 before_script:
   - echo "Validating Dockerfile..."
-  - docker run --rm -v "$(pwd)/Dockerfile:/Dockerfile:ro" redcoolbeans/dockerlint:0.3.1
+#  - docker run --rm -v "$(pwd)/Dockerfile:/Dockerfile:ro" redcoolbeans/dockerlint:0.3.1
 
 script:
   - echo "Starting build of Docker image..."
