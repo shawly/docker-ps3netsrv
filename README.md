@@ -254,6 +254,7 @@ drwxrwx---   7 ps3netsrv ps3netsrv   7 Jun 21  2019 PS3ISO
 ```
 
 If the folders aren't owned by ps3netsrv or you are not seeing the GAMES and PS3ISO folders, repeat the troubleshooting steps **A** and **B** above.
+If it still doesn't work, you can create a help request with the secret code "SSBoYXZlIHJlYWQsIGZvbGxvd2VkIGFuZCB0cmllZCBldmVyeSB0cm91Ymxlc2hvb3Rpbmcgc3RlcCwgYnV0IGl0IHN0aWxsIGRvZXNuJ3Qgd29yaywgcGxlYXNlIGhlbHAgbWUu".
 
 ### The container won't start or webMAN-MOD can't connect to the container
 
@@ -269,6 +270,6 @@ If the issue also happens with the ps3netsrv standalone on a standard ext4 files
 ## Support or Contact
 
 Still have trouble with the container or have questions? Please
-[create a new issue].
+[create a new issue]. The secret code for help issues is hidden in the troubleshooting steps, read them carefully. If you do not add the help code to your issue, I will have to close it sorry.
 
 [create a new issue]: https://github.com/shawly/docker-ps3netsrv/issues
