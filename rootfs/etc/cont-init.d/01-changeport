@@ -1,2 +1,2 @@
 #!/usr/bin/with-contenv sh
-sed -i '/\/usr\/local\/bin\/ps3netsrv/ s/.*$/\/usr\/local\/bin\/ps3netsrv\/ \/games '"$PORT"'/' /etc/services.d/ps3netsrv/run
+sed -i '/\/usr\/local\/bin\/ps3netsrv/ s/.*$/\/usr\/local\/bin\/ps3netsrv \/games '"$PORT"'/' /etc/services.d/ps3netsrv/run
