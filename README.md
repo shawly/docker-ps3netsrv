@@ -24,6 +24,7 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
       * [Docker Compose File](#docker-compose-file)
       * [Docker Image Update](#docker-image-update)
       * [User/Group IDs](#usergroup-ids)
+      * [Troubleshooting](#troubleshooting)
       * [Support or Contact](#support-or-contact)
 
 ## Supported Architectures
@@ -52,12 +53,12 @@ Launch the ps3netsrv docker container with the following command:
 docker run -d \
     --name=ps3netsrv \
     -p 38008:38008 \
-    -v $HOME:/games:rw \
+    -v $HOME/ps3games:/games:rw \
     shawly/ps3netsrv
 ```
 
 Where:
-  - `$HOME`: This location contains files from your host that need to be accessible by the application.
+  - `$HOME/ps3games`: This location contains files from your host that need to be accessible by the application.
 
 
 ## Usage
@@ -150,7 +151,7 @@ services:
     ports:
       - "38008:38008"
     volumes:
-      - "$HOME:/games:rw"
+      - "$HOME/ps3games:/games:rw"
 ```
 
 ## Docker Image Update
@@ -197,9 +198,77 @@ uid=1000(myuser) gid=1000(myuser) groups=1000(myuser),4(adm),24(cdrom),27(sudo),
 The value of `uid` (user ID) and `gid` (group ID) are the ones that you should
 be given the container.
 
+## Troubleshooting
+
+First things first, if you have any kind of issue please try to use [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv and try to reproduce the issue. If you have the same issue with the standalone version, it's better to create an issue on the [webMAN-MOD repo](https://github.com/aldostools/webMAN-MOD/issues).
+
+### webMAN-MOD can't see or read games from ps3netsrv
+
+There are several possible causes for this issue. I will use the user `bob` who has his backups saved in his home folder under `/home/bob/ps3games` as an example.
+
+#### A. Your folder structure is incorrect
+
+ps3netsrv or rather webMAN-MOD wants to read their games from a certain folder structure, so your volume needs at least the folder `PS3ISO` and `GAMES`. 
+Therefore it is necessary for bob to create the folders `/home/bob/ps3games/PS3ISO` and `/home/bob/ps3games/GAMES` as well. ISO files go into the `PS3ISO` folder and extracted games in folder format go into the `GAMES` folder. So now `bob` has to mount `/home/bob/ps3games` to the `/games` volume within the container. Like this:
+```
+docker run -d \
+    --name=ps3netsrv \
+    -p 38008:38008 \
+    -v $HOME/ps3games:/games:rw \
+    shawly/ps3netsrv
+```
+
+#### B. Your permissions are incorrect
+
+ps3netsrv does not have root permissions within the container, it runs as user `ps3netsrv` which by default has the UID 1000 and the GID 1000.  
+There are two solutions for this issue, `bob` could change the ownership of his `ps3games` folder to 1000:1000, which is a bad idea because he will lose access if he does not have the UID 1000.
+
+The better solution is to override the `ps3netsrv` user's UID and GID, this can be done with the environment variables `USER_ID` and `GROUP_ID`.  
+`bob` has the UID 10002 and his `bob` group has the GID 10003 so we need to change the environment variables, like this:
+```
+docker run -d \
+    --name=ps3netsrv \
+    -p 38008:38008 \
+    -v $HOME/ps3games:/games:rw \
+    -e USER_ID=10002 \
+    -e GROUP_ID=10003 \
+    shawly/ps3netsrv
+```
+
+#### C. ps3netsrv standalone works but your container doesn't
+
+Make sure to start the ps3netsrv standalone as normal user, not as root user or with sudo. If it works for your root user but not for a non-root user, then go back to troubleshooting step **B**. If the standalone works with both normal users and root but the container doesn't, check the ownership, see the next point **D**.
+
+#### D. All of the above stuff wasn't causing the issue
+
+Alright then, please execute `ls -l path/to/your/ps3games/folder` and `docker exec CONTAINERNAME ls -l /games` (replace **CONTAINERNAME** with the actual name of your container). It should look like this:
+```
+bob@nas:~$ ls -l /home/bob/ps3games
+drwxrwx--- 119 bob bob 119 Mar  4  2019 GAMES
+drwxrwx---   7 bob bob   7 Jun 21  2019 PS3ISO
+```
+```
+bob@nas:~$ docker exec ps3netsrv ls -l /games
+drwxrwx--- 119 ps3netsrv ps3netsrv 119 Mar  4  2019 GAMES
+drwxrwx---   7 ps3netsrv ps3netsrv   7 Jun 21  2019 PS3ISO
+```
+
+If the folders aren't owned by ps3netsrv or you are not seeing the GAMES and PS3ISO folders, repeat the troubleshooting steps **A** and **B** above.
+
+### The container won't start or webMAN-MOD can't connect to the container
+
+On some systems like Synology NAS systems the default port of ps3netsrv `38008` is in use already, so you simply need to change the host port to something else on the container and change the port within webMAN-MOD's webinterface to the same port.
+If the port is not the issue, it might be the latest build of ps3netsrv, try out some older tags of my Docker image as well as [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv.
+
+### webMAN-MOD has access to ps3netsrv but when mounting games they show as corrupted
+
+This is an issue related to the latest UnRAID version, the splitting mechanism of shfs seems to be incompatible with ps3netsrv, take a look at [this issue](https://github.com/aldostools/webMAN-MOD/issues/333), at the bottom you can find some workarounds.
+If you do not have UnRAID but some other filesystem please test [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv before creating an issue here.
+If the issue also happens with the ps3netsrv standalone on a standard ext4 filesystem, your games are likely to be corrupted or you don't own the files **within** your games folders, check permissions and/or make new backups.
+
 ## Support or Contact
 
-Having troubles with the container or have questions?  Please
+Still have trouble with the container or have questions? Please
 [create a new issue].
 
 [create a new issue]: https://github.com/shawly/docker-ps3netsrv/issues
