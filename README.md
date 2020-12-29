@@ -34,7 +34,9 @@ The architectures supported by this image are:
 | Architecture | Tag | Status |
 | :----: | --- | ------ |
 | x86-64 | amd64-latest | working |
+| x86 | i386-latest | experimental |
 | arm64 | arm64v8-latest | experimental |
+| armv7 | arm32v7-latest | experimental |
 | armhf | arm32v6-latest | experimental |
 
 Lo and behold this is the first ps3netsrv container with experimental arm32 and arm64 support!
