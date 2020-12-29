@@ -1,38 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Pre build hook for Docker Automated Build.
-#
-# This hooks modifies the Dockerfile by inserting the image version in the
-# related label.
 #
 
 set -e # Exit immediately if a command exits with a non-zero status.
 set -u # Treat unset variables as an error.
 
-# Make sure the DOCKER_TAG has a supported format like:
-#     v1.0.0
-#     v0.1.0-beta1
-#     v2.0.0-rc2
-if [[ ! "$DOCKER_TAG" =~ ^v[0-9\.]+(-(alpha|beta|rc)[0-9]+)?$ ]]; then
-  echo "Unsupported DOCKER_TAG: $DOCKER_TAG"
-  exit 1
-fi
+echo "🔵 pre_build"
+source hooks/.config
 
-# The version to use is the same has the DOCKER_TAG, minus the initial 'v'.
-IMAGE_VERSION="${DOCKER_TAG:1}"
+echo "ℹ️ Inserting ps3netsrv version \"${PS3NETSRV_VERSION}\" in Dockerfile..."
+sed -i "s/org.label-schema.version=\"unknown\"/org.label-schema.version=\"$PS3NETSRV_VERSION\"/" Dockerfile
 
-# Export our custom variables.
-echo "IMAGE_VERSION=\"$IMAGE_VERSION\"" >> custom_hook_env
+echo "ℹ️ Register qemu-*-static for all supported processors except current"
+echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
 
-echo "Environment variables:
-    IMAGE_NAME=$IMAGE_NAME
-    DOCKER_REPO=$DOCKER_REPO
-    DOCKER_TAG=$DOCKER_TAG
-    SOURCE_BRANCH=$SOURCE_BRANCH
-    IMAGE_VERSION=$IMAGE_VERSION
-"
+docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
-echo "Inserting image version in Dockerfile..."
-sed -i "s/org.label-schema.version=\"unknown\"/org.label-schema.version=\"$IMAGE_VERSION\"/" Dockerfile
-
-echo "pre_build hook terminated successfully."
+echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+echo "✅ pre_build hook terminated successfully."
