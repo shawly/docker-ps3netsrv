@@ -26,7 +26,7 @@ for arch in ${verified_build_architectures[@]}; do
     --build-arg S6_OVERLAY_ARCH=${S6_OVERLAY_ARCH} \
     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
     --file $DOCKERFILE_PATH \
-    --tag "${IMAGE_NAME}-${arch}"  \
+    --tag "${IMAGE_NAME}-${arch}" \
     .
 done
 

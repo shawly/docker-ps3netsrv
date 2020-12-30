@@ -9,8 +9,8 @@ set -u # Treat unset variables as an error.
 echo "🔵 pre_build"
 source hooks/.config
 
-echo "ℹ️ Inserting ps3netsrv version \"${PS3NETSRV_VERSION}\" in Dockerfile..."
-sed -i "s/org.label-schema.version=\"unknown\"/org.label-schema.version=\"$PS3NETSRV_VERSION\"/" Dockerfile
+echo "ℹ️ Inserting app version \"${APP_VERSION}\" in Dockerfile..."
+sed -i "s/org.label-schema.version=\"unknown\"/org.label-schema.version=\"$APP_VERSION\"/" Dockerfile
 
 echo "ℹ️ Register qemu-*-static for all supported processors except current"
 echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
