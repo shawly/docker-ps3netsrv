@@ -14,7 +14,7 @@ ARG QEMU_ARCH
 ARG ALPINE_VERSION=3.12
 
 # Set vars for s6 overlay
-ARG S6_OVERLAY_VERSION=v1.22.1.0
+ARG S6_OVERLAY_VERSION=v2.1.0.2
 ARG S6_OVERLAY_ARCH=amd64
 ARG S6_OVERLAY_RELEASE=https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz
 
@@ -36,7 +36,7 @@ ENV PS3NETSRV_REPO=${PS3NETSRV_REPO} \
     PS3NETSRV_BRANCH=${PS3NETSRV_BRANCH}
 
 # Add qemu-arm-static binary
-COPY qemu-${QEMU_ARCH}-static /usr/bin/
+COPY .gitignore qemu-${QEMU_ARCH}-static* /usr/bin/
 
 # Change working dir.
 WORKDIR /tmp
@@ -73,7 +73,7 @@ ENV S6_OVERLAY_RELEASE=${S6_OVERLAY_RELEASE}
 ADD ${S6_OVERLAY_RELEASE} /tmp/s6overlay.tar.gz
 
 # Add qemu-arm-static binary
-COPY qemu-${QEMU_ARCH}-static /usr/bin/
+COPY .gitignore qemu-${QEMU_ARCH}-static* /usr/bin/
 
 # Copy binary from build container.
 COPY --from=builder /tmp/ps3netsrv-bin/ps3netsrv /usr/local/bin/ps3netsrv
