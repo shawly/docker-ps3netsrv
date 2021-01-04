@@ -25,6 +25,7 @@ for arch in ${verified_build_architectures[@]}; do
     --build-arg QEMU_ARCH=${QEMU_ARCH} \
     --build-arg S6_OVERLAY_ARCH=${S6_OVERLAY_ARCH} \
     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+    --build-arg VCS_REF=$(git rev-parse --short HEAD) \
     --file $DOCKERFILE_PATH \
     --tag "${IMAGE_NAME}-${arch}" \
     .
