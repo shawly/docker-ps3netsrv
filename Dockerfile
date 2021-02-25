@@ -4,44 +4,66 @@
 # https://github.com/shawly/docker-ps3netsrv
 #
 
-# Base image prefix for automated dockerhub build
-ARG BASE_IMAGE_PREFIX
-
-# Set QEMU architecture
-ARG QEMU_ARCH
-
 # Set alpine version
-ARG ALPINE_VERSION=3.12
+ARG ALPINE_VERSION=3.13
 
 # Set vars for s6 overlay
-ARG S6_OVERLAY_VERSION=v2.1.0.2
-ARG S6_OVERLAY_ARCH=amd64
-ARG S6_OVERLAY_RELEASE=https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz
+ARG S6_OVERLAY_VERSION=v2.2.0.3
+ARG S6_OVERLAY_BASE_URL=https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}
 
 # Set PS3NETSRV vars
 ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
 ARG PS3NETSRV_DIR=_Projects_/ps3netsrv
 ARG PS3NETSRV_BRANCH=master
 
+# Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
+FROM alpine:${ALPINE_VERSION} as alpine-amd64
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-amd64.tar.gz"
+
+FROM alpine:${ALPINE_VERSION} as alpine-386
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-x86.tar.gz"
+
+FROM alpine:${ALPINE_VERSION} as alpine-armv6
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-armhf.tar.gz"
+
+FROM alpine:${ALPINE_VERSION} as alpine-armv7
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-arm.tar.gz"
+
+FROM alpine:${ALPINE_VERSION} as alpine-arm64
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-aarch64.tar.gz"
+
+FROM alpine:${ALPINE_VERSION} as alpine-ppc64le
+
+ARG S6_OVERLAY_VERSION
+ARG S6_OVERLAY_BASE_URL
+ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-ppc64le.tar.gz"
+
 # Build ps3netsrv:master
-FROM ${BASE_IMAGE_PREFIX}alpine:${ALPINE_VERSION} as builder
+FROM alpine:${ALPINE_VERSION} as builder
 
 ARG PS3NETSRV_REPO
 ARG PS3NETSRV_DIR
 ARG PS3NETSRV_BRANCH
-ARG QEMU_ARCH
 
-ENV PS3NETSRV_REPO=${PS3NETSRV_REPO} \
-    PS3NETSRV_DIR=${PS3NETSRV_DIR} \
-    PS3NETSRV_BRANCH=${PS3NETSRV_BRANCH}
-
-# Add qemu-arm-static binary
-COPY .gitignore qemu-${QEMU_ARCH}-static* /usr/bin/
-
-# Change working dir.
+# Change working dir
 WORKDIR /tmp
 
-# Install deps and build binary.
+# Install deps and build binary
 RUN \
   set -ex && \
   echo "Installing build dependencies..." && \
@@ -61,25 +83,15 @@ RUN \
     cp -v /tmp/repo/${PS3NETSRV_DIR}/build/ps3netsrv /tmp/ps3netsrv-bin/
 
 # Runtime container
-FROM ${BASE_IMAGE_PREFIX}alpine:${ALPINE_VERSION}
+FROM alpine-${TARGETARCH:-amd64}${TARGETVARIANT}
 
-ARG S6_OVERLAY_RELEASE
-ARG QEMU_ARCH
-ARG BUILD_DATE
-ARG VCS_REF
-
-ENV S6_OVERLAY_RELEASE=${S6_OVERLAY_RELEASE}
-
-# Download S6 Overlay
+# Download s6 overlay
 ADD ${S6_OVERLAY_RELEASE} /tmp/s6overlay.tar.gz
 
-# Add qemu-arm-static binary
-COPY .gitignore qemu-${QEMU_ARCH}-static* /usr/bin/
-
-# Copy binary from build container.
+# Copy binary from build container
 COPY --from=builder /tmp/ps3netsrv-bin/ps3netsrv /usr/local/bin/ps3netsrv
 
-# Install runtime deps and add users.
+# Install runtime deps and add users
 RUN \
   set -ex && \
   echo "Installing runtime dependencies..." && \
@@ -99,26 +111,14 @@ RUN \
   echo "Cleaning up temp directory..." && \
     rm -rf /tmp/*
 
-# Add files.
+# Add files
 COPY rootfs/ /
 
-# Define mountable directories.
+# Define mountable directories
 VOLUME ["/games"]
 
-# Expose ports.
+# Expose ports
 EXPOSE 38008
 
-# Metadata.
-LABEL \
-      org.label-schema.name="ps3netsrv" \
-      org.label-schema.description="Docker container for ps3netsrv" \
-      org.label-schema.version="unknown" \
-      org.label-schema.vcs-url="https://github.com/shawly/docker-ps3netsrv" \
-      org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.schema-version="1.0" \
-      org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.vendor="shawly" \
-      org.label-schema.docker.cmd="docker run -d --name=ps3netsrv -p 38008:38008 -v $HOME/ps3games:/games:rw shawly/ps3netsrv"
-
-# Start s6.
+# Start s6
 ENTRYPOINT ["/init"]
