@@ -1,5 +1,5 @@
 # Docker container for ps3netsrv (or ps3netsvr)
-[![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) ![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/crafty-web/latest) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
+[![Docker Automated build](https://img.shields.io/badge/docker%20build-automated-brightgreen)](https://github.com/shawly/docker-ps3netsrv/actions) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/shawly/docker-ps3netsrv/Docker)](https://github.com/shawly/docker-ps3netsrv/actions) [![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv)](https://hub.docker.com/r/shawly/ps3netsrv) [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/ps3netsrv/latest)](https://hub.docker.com/r/shawly/ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
 
 This is a Docker container for ps3netsrv (or ps3netsvr).
 
@@ -31,17 +31,16 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
 
 The architectures supported by this image are:
 
-| Architecture | Tag | Status |
-| :----: | --- | ------ |
-| x86-64 | amd64-latest | working |
-| x86 | i386-latest | experimental |
-| arm64 | arm64v8-latest | experimental |
-| armv7 | arm32v7-latest | experimental |
-| armhf | arm32v6-latest | experimental |
+| Architecture | Status |
+| :----: | ------ |
+| x86-64 | working |
+| x86 | untested |
+| arm64 | untested |
+| armv7 |  untested |
+| armhf | working |
+| ppc64le | untested |
 
-Lo and behold this is the first ps3netsrv container with experimental arm32 and arm64 support!
-
-*I'm declaring the arm images as **experimental** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it.*
+*I'm declaring the arm images as **untested** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it.*
 
 *I would be glad if you could [create a small report](https://github.com/shawly/docker-ps3netsrv/issues/new/choose) (choose ARM Compatibility Report) to tell me which device you've tested and if it's working or not.*
 
