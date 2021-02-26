@@ -2,9 +2,9 @@ name: Docker
 
 on:
   push:
-    # Publish `master` as Docker `latest` image.
+    # Publish `main` as Docker `edge` image.
     branches:
-      - master
+      - main
 
     # Publish `v1.2.3` tags as releases.
     tags:
@@ -14,8 +14,10 @@ on:
   pull_request:
 
 env:
-  # TODO: Change variable to your image's name.
   IMAGE_NAME: ps3netsrv
+  IMAGE_TITLE: ps3netsrv
+  IMAGE_DESCRIPTION: Docker container for ps3netsrv
+  APP_VERSION: 20210113
 
 jobs:
   # Run tests.
@@ -24,7 +26,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Run tests
         run: |
@@ -38,69 +41,65 @@ jobs:
   # Build images.
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # Define platforms that the image will be built for.
-        docker_arch: [amd64, i386, aarch64, armv7, armhf, ppc64le] # arm32v5 is not supported by alpine
-        include:
-        # amd64
-         - docker_arch: amd64
-           base_image_prefix: ""
-           qemu_arch: ""
-           s6_overlay_arch: amd64
-        # i386
-         - docker_arch: i386
-           base_image_prefix: i386/
-           qemu_arch: i386
-           s6_overlay_arch: x86
-        # aarch64
-         - docker_arch: aarch64
-           base_image_prefix: arm64v8/
-           qemu_arch: aarch64
-           s6_overlay_arch: aarch64
-        # armv7
-         - docker_arch: armv7
-           base_image_prefix: arm32v7/
-           qemu_arch: arm
-           s6_overlay_arch: arm
-        # armhf
-         - docker_arch: armhf
-           base_image_prefix: arm32v6/
-           qemu_arch: arm
-           s6_overlay_arch: armhf
-        # ppc64le
-         - docker_arch: ppc64le
-           base_image_prefix: ppc64le/
-           qemu_arch: ppc64le
-           s6_overlay_arch: ppc64le
+
+    needs: test
 
     steps:
-    - name: Register binfmt_misc entry for qemu-user-static 
-      env:
-        QEMU_ARCH: ${{ matrix.qemu_arch }}
-      run: |
-        if [ -n "${QEMU_ARCH}" ]; then
-        	docker rm $(docker create --volume qemu-user-static:/usr/bin multiarch/qemu-user-static:${QEMU_ARCH} dummy)
-        	docker run --rm --privileged --volume qemu-user-static:/usr/bin:ro multiarch/qemu-user-static:register --persistent yes
-        fi
+    - name: Checkout
+      uses: actions/checkout@v2
 
-    # Checkout
-    - uses: actions/checkout@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+      with:
+        platforms: all
 
-    - name: Build
-      env:
-        DOCKER_ARCH: ${{ matrix.docker_arch }}
-        BASE_IMAGE_PREFIX: ${{ matrix.base_image_prefix }}
-        QEMU_ARCH: ${{ matrix.qemu_arch }}
-        S6_OVERLAY_ARCH: ${{ matrix.s6_overlay_arch }}
-        DOCKERFILE_PATH: Dockerfile
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Prepare
+      id: prep
       run: |
-        docker build \
-          --build-arg BASE_IMAGE_PREFIX=${BASE_IMAGE_PREFIX} \
-          --build-arg QEMU_ARCH=${QEMU_ARCH} \
-          --build-arg S6_OVERLAY_ARCH=${S6_OVERLAY_ARCH} \
-          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-          --build-arg VCS_REF=$(git rev-parse --short HEAD) \
-          --file $DOCKERFILE_PATH \
-          --tag "${IMAGE_NAME}-${DOCKER_ARCH}" \
-          .
+        DOCKER_IMAGE=${{ github.repository_owner }}/$IMAGE_NAME
+
+        # Strip git ref prefix from version
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+        # Use Docker `edge` tag convention and pr-<number> for pull requests
+        [ "$VERSION" == "main" ] && VERSION=edge
+        [ ${{ github.ref }} == refs/pull/* ] && VERSION=pr-${{ github.event.number }}
+
+        TAGS="${DOCKER_IMAGE}:${VERSION}"  
+        [ "$VERSION" != "edge" ] && TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+
+        echo ::set-output name=version::${VERSION}
+        echo ::set-output name=tags::${TAGS}
+        echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+    - name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: .
+        file: Dockerfile.buildx
+        platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.prep.outputs.tags }}
+        labels: |
+          org.opencontainers.image.title=$IMAGE_TITLE
+          org.opencontainers.image.description=$IMAGE_DESCRIPTION
+          org.opencontainers.image.vendor=${{ github.repository_owner }}
+          org.opencontainers.image.url=${{ github.event.repository.html_url }}
+          org.opencontainers.image.source=${{ github.event.repository.html_url }}
+          org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.version=$APP_VERSION
+
