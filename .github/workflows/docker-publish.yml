@@ -41,26 +41,41 @@ jobs:
     strategy:
       matrix:
         # Define platforms that the image will be built for.
-        docker_arch: [amd64, i386, arm32v6, arm32v7, arm64v8, ppc64le, s390x] # arm32v5 is not supported by alpine
+        docker_arch: [amd64, i386, aarch64, armv7, armhf, ppc64le, s390x] # arm32v5 is not supported by alpine
+        base_image_prefix: [arm64v8/, arm32v7/, arm32v6/, arm32v5/, i386/]
+        qemu_arch: [aarch64, arm, i386]
+        include:
+        # amd64
+         - docker_arch: amd64
+           base_image_prefix: ""
+           qemu_arch: ""
+           s6_overlay_arch: amd64
+        # i386
+         - docker_arch: i386
+           base_image_prefix: i386
+           qemu_arch: i386
+           s6_overlay_arch: x86
+        # aarch64
+         - docker_arch: aarch64
+           base_image_prefix: arm64v8/
+           qemu_arch: aarch64
+           s6_overlay_arch: aarch64
+        # armv7
+         - docker_arch: armv7
+           base_image_prefix: arm32v7/
+           qemu_arch: arm
+           s6_overlay_arch: arm
+        # armhf
+         - docker_arch: armhf
+           base_image_prefix: arm32v6/
+           qemu_arch: arm
+           s6_overlay_arch: armhf
+
     steps:
     - name: Register binfmt_misc entry for qemu-user-static 
       env:
-        DOCKER_ARCH: ${{ matrix.docker_arch }}
+        QEMU_ARCH: ${{ matrix.qemu_arch }}
       run: |
-        case ${DOCKER_ARCH} in
-        	amd64|i386)
-        		QEMU_ARCH=
-        		;;
-        	arm32*)
-        		QEMU_ARCH=arm
-        		;;
-        	arm64*)
-        		QEMU_ARCH=aarch64
-        		;;
-        	*)
-        		QEMU_ARCH=${DOCKER_ARCH}
-        		;;
-        esac
         if [ -n "${QEMU_ARCH}" ]; then
         	docker rm $(docker create --volume qemu-user-static:/usr/bin multiarch/qemu-user-static:${QEMU_ARCH} dummy)
         	docker run --rm --privileged --volume qemu-user-static:/usr/bin:ro multiarch/qemu-user-static:register --persistent yes
@@ -68,5 +83,16 @@ jobs:
     - name: Build
       env:
         DOCKER_ARCH: ${{ matrix.docker_arch }}
+        BASE_IMAGE_PREFIX: ${{ matrix.base_image_prefix }}
+        QEMU_ARCH: ${{ matrix.qemu_arch }}
+        S6_OVERLAY_ARCH: ${{ matrix.s6_overlay_arch }}
       run: |
-        docker build . --file Dockerfile
+        docker build \
+          --build-arg BASE_IMAGE_PREFIX=${BASE_IMAGE_PREFIX} \
+          --build-arg QEMU_ARCH=${QEMU_ARCH} \
+          --build-arg S6_OVERLAY_ARCH=${S6_OVERLAY_ARCH} \
+          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+          --build-arg VCS_REF=$(git rev-parse --short HEAD) \
+          --file $DOCKERFILE_PATH \
+          --tag "${IMAGE_NAME}-${arch}" \
+          .
