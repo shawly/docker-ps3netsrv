@@ -41,9 +41,7 @@ jobs:
     strategy:
       matrix:
         # Define platforms that the image will be built for.
-        docker_arch: [amd64, i386, aarch64, armv7, armhf, ppc64le, s390x] # arm32v5 is not supported by alpine
-        base_image_prefix: [arm64v8/, arm32v7/, arm32v6/, arm32v5/, i386/]
-        qemu_arch: [aarch64, arm, i386]
+        docker_arch: [amd64, i386, aarch64, armv7, armhf, ppc64le] # arm32v5 is not supported by alpine
         include:
         # amd64
          - docker_arch: amd64
@@ -52,7 +50,7 @@ jobs:
            s6_overlay_arch: amd64
         # i386
          - docker_arch: i386
-           base_image_prefix: i386
+           base_image_prefix: i386/
            qemu_arch: i386
            s6_overlay_arch: x86
         # aarch64
@@ -70,6 +68,11 @@ jobs:
            base_image_prefix: arm32v6/
            qemu_arch: arm
            s6_overlay_arch: armhf
+        # ppc64le
+         - docker_arch: ppc64le
+           base_image_prefix: ppc64le/
+           qemu_arch: ppc64le
+           s6_overlay_arch: ppc64le
 
     steps:
     - name: Register binfmt_misc entry for qemu-user-static 
