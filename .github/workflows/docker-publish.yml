@@ -89,6 +89,7 @@ jobs:
         BASE_IMAGE_PREFIX: ${{ matrix.base_image_prefix }}
         QEMU_ARCH: ${{ matrix.qemu_arch }}
         S6_OVERLAY_ARCH: ${{ matrix.s6_overlay_arch }}
+        DOCKERFILE_PATH: Dockerfile
       run: |
         docker build \
           --build-arg BASE_IMAGE_PREFIX=${BASE_IMAGE_PREFIX} \
@@ -97,5 +98,5 @@ jobs:
           --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
           --build-arg VCS_REF=$(git rev-parse --short HEAD) \
           --file $DOCKERFILE_PATH \
-          --tag "${IMAGE_NAME}-${arch}" \
+          --tag "${IMAGE_NAME}-${DOCKER_ARCH}" \
           .
