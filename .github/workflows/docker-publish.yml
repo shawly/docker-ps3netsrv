@@ -2,9 +2,9 @@ name: Docker
 
 on:
   push:
-    # Publish `main` as Docker `edge` image.
+    # Publish `master` as Docker `edge` image.
     branches:
-      - main
+      - master
 
     # Publish `v1.2.3` tags as releases.
     tags:
@@ -73,7 +73,7 @@ jobs:
         VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
 
         # Use Docker `edge` tag convention and pr-<number> for pull requests
-        [ "$VERSION" == "main" ] && VERSION=edge
+        [ "$VERSION" == "master" ] && VERSION=edge
         [ ${{ github.ref }} == refs/pull/* ] && VERSION=pr-${{ github.event.number }}
 
         TAGS="${DOCKER_IMAGE}:${VERSION}"  
