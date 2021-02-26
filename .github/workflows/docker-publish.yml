@@ -83,6 +83,10 @@ jobs:
         	docker rm $(docker create --volume qemu-user-static:/usr/bin multiarch/qemu-user-static:${QEMU_ARCH} dummy)
         	docker run --rm --privileged --volume qemu-user-static:/usr/bin:ro multiarch/qemu-user-static:register --persistent yes
         fi
+
+    # Checkout
+    - uses: actions/checkout@v2
+
     - name: Build
       env:
         DOCKER_ARCH: ${{ matrix.docker_arch }}
