@@ -35,7 +35,7 @@ The architectures supported by this image are:
 | :----: | ------ |
 | x86-64 | working |
 | x86 | untested |
-| arm64 | untested |
+| arm64 | [working](https://github.com/shawly/docker-ps3netsrv/issues/19) |
 | armv7 |  untested |
 | armhf | working |
 | ppc64le | untested |
