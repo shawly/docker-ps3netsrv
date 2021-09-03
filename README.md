@@ -61,7 +61,10 @@ docker run -d \
 Where:
   - `$HOME/ps3games`: This location contains files from your host that need to be accessible by the application.
 
-
+If the container has been stopped for some reasons, you can continue it by running the following command:
+```
+docker start ps3netsrv
+```
 ## Usage
 
 ```
