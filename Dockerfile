@@ -5,7 +5,7 @@
 #
 
 # Set alpine version
-ARG ALPINE_VERSION=3.13
+ARG ALPINE_VERSION=3.14
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION=v2.2.0.3
@@ -72,6 +72,10 @@ RUN \
     build-base \
     meson \
     mbedtls-dev \
+    musl \
+    musl-dev \
+    musl-dbg \
+    musl-utils \
     tar && \
   echo "Building ps3netsrv..." && \
     git clone --depth 1 ${PS3NETSRV_REPO} repo && \
@@ -100,6 +104,8 @@ RUN \
     shadow \
     tzdata \
     libstdc++ \
+    musl \
+    musl-utils \
     mbedtls && \
   echo "Extracting s6 overlay..." && \
     tar xzf /tmp/s6overlay.tar.gz -C / && \
