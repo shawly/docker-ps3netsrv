@@ -70,16 +70,18 @@ jobs:
         DOCKER_IMAGE=${{ github.repository_owner }}/$IMAGE_NAME
 
         # Strip git ref prefix from version
-        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+        VERSION_FULL=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\)$,\1,')
+        VERSION_MINOR=$(echo "$VERSION_FULL" | sed 's,\.[^.]*$,,')
+        VERSION_MAJOR=$(echo "$VERSION_MINOR" | sed 's,\.[^.]*$,,')
 
         # Use Docker `edge` tag convention and pr-<number> for pull requests
-        [ "$VERSION" == "master" ] && VERSION=edge
-        [ ${{ github.ref }} == refs/pull/* ] && VERSION=pr-${{ github.event.number }}
+        [ "$VERSION_FULL" == "master" ] && VERSION_FULL=edge
+        [ ${{ github.ref }} == refs/pull/* ] && VERSION_FULL=pr-${{ github.event.number }}
 
-        TAGS="${DOCKER_IMAGE}:${VERSION}"  
-        [ "$VERSION" != "edge" ] && TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+        TAGS="${DOCKER_IMAGE}:${VERSION_FULL}"  
+        [ "$VERSION_FULL" != "edge" -a ${VERSION_FULL:0:3} != "pr-" ] && TAGS="$TAGS,${DOCKER_IMAGE}:${VERSION_MINOR},${DOCKER_IMAGE}:${VERSION_MAJOR},${DOCKER_IMAGE}:latest"
 
-        echo ::set-output name=version::${VERSION}
+        echo ::set-output name=version::${VERSION_FULL}
         echo ::set-output name=tags::${TAGS}
         echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
