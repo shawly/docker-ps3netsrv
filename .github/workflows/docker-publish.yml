@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: ps3netsrv
   IMAGE_TITLE: ps3netsrv
   IMAGE_DESCRIPTION: Docker container for ps3netsrv
-  APP_VERSION: "20220301"
+  APP_VERSION: "20220330"
 
 jobs:
   # Run tests.
