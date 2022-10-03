@@ -5,7 +5,7 @@
 #
 
 # Set alpine version
-ARG ALPINE_VERSION=3.14
+ARG ALPINE_VERSION=3.16
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION=v2.2.0.3

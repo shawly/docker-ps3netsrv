@@ -5,6 +5,7 @@ on:
     # Publish `master` as Docker `edge` image.
     branches:
       - master
+      - develop
 
     # Publish `v1.2.3` tags as releases.
     tags:
@@ -17,7 +18,7 @@ env:
   IMAGE_NAME: ps3netsrv
   IMAGE_TITLE: ps3netsrv
   IMAGE_DESCRIPTION: Docker container for ps3netsrv
-  APP_VERSION: "20220330"
+  APP_VERSION: "20220813"
 
 jobs:
   # Run tests.
@@ -58,7 +59,7 @@ jobs:
       uses: docker/setup-buildx-action@v1
 
     - name: Login to DockerHub
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
       uses: docker/login-action@v1 
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -92,7 +93,7 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le
-        push: ${{ github.event_name != 'pull_request' }}
+        push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
         tags: ${{ steps.prep.outputs.tags }}
         labels: |
           org.opencontainers.image.title=$IMAGE_TITLE
