@@ -1,9 +1,9 @@
 name: Get latest release version
 on:
   schedule:
-    - cron: "* 0 * * *"
+    - cron: "0 * * * *"
 jobs:
-  get-version:
+  update-version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
