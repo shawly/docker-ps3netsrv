@@ -16,3 +16,11 @@ e.g. Raspberry Pi 1B+
 
 **Additional steps to get it to work?**
 - none
+
+**Did you verify that the standalone binaries of ps3netsrv work?**
+[ ] yes
+[ ] no
+
+**Have you read the troubleshooting section in the README?**
+[ ] yes
+[ ] no
