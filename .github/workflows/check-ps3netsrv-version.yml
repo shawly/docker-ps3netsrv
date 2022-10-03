@@ -1,4 +1,4 @@
-name: Get latest release version
+name: Update edge image
 on:
   schedule:
     - cron: "0 * * * *"
