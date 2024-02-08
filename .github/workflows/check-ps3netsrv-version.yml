@@ -14,7 +14,7 @@ jobs:
       - name: Fetch release version
         id: fetch-release
         run: |
-          curl -sL -O release.json https://api.github.com/repos/aldostools/webMAN-MOD/releases/latest
+          curl -sL -o release.json https://api.github.com/repos/aldostools/webMAN-MOD/releases/latest
           export PS3NETSRV_VERSION=$(jq -r '.assets[] | select(.name | startswith("ps3netsrv")) | .name' release.json | \
                             sed -e 's/ps3netsrv_\(.*\)\.zip/\1/')
           export RELEASE_TAG=$(jq -r '.tag_name' release.json)
@@ -27,8 +27,8 @@ jobs:
             echo "Updated APP_VERSION with $PS3NETSRV_VERSION in .github/workflows/docker-publish.yml"
 
             # replacing PS3NETSRV_RELEASE and PS3NETSRV_VERSION in Dockerfile
-            sed -ri "s/(PS3NETSRV_VERSION=.+)/PS3NETSRV_VERSION=$PS3NETSRV_VERSION" Dockerfile
-            sed -ri "s/(PS3NETSRV_RELEASE=.+)/PS3NETSRV_RELEASE=$RELEASE_TAG" Dockerfile
+            sed -ri "s/(PS3NETSRV_VERSION=.+)/PS3NETSRV_VERSION=$PS3NETSRV_VERSION/" Dockerfile
+            sed -ri "s/(PS3NETSRV_RELEASE=.+)/PS3NETSRV_RELEASE=$RELEASE_TAG/" Dockerfile
             echo "Updated APP_VERSION with $PS3NETSRV_VERSION in Dockerfile"
 
             echo ::set-output name=version::$PS3NETSRV_VERSION
