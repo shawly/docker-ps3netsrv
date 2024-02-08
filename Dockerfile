@@ -5,7 +5,7 @@
 #
 
 # Set alpine version
-ARG ALPINE_VERSION=3.16
+ARG ALPINE_VERSION=3.18
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION=v2.2.0.3
@@ -14,7 +14,12 @@ ARG S6_OVERLAY_BASE_URL=https://github.com/just-containers/s6-overlay/releases/d
 # Set PS3NETSRV vars
 ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
 ARG PS3NETSRV_DIR=_Projects_/ps3netsrv
-ARG PS3NETSRV_BRANCH=master
+ARG PS3NETSRV_REF=master
+ARG BUILD_FROM_GIT=false
+
+ARG PS3NETSRV_RELEASE=1.47.44
+ARG PS3NETSRV_VERSION=20220813
+ARG PS3NETSRV_URL=https://github.com/aldostools/webMAN-MOD/releases/download/${PS3NETSRV_RELEASE}/ps3netsrv_${PS3NETSRV_VERSION}.zip
 
 # Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
 FROM alpine:${ALPINE_VERSION} as alpine-amd64
@@ -58,7 +63,11 @@ FROM alpine:${ALPINE_VERSION} as builder
 
 ARG PS3NETSRV_REPO
 ARG PS3NETSRV_DIR
-ARG PS3NETSRV_BRANCH
+ARG PS3NETSRV_REF
+ARG PS3NETSRV_RELEASE
+ARG PS3NETSRV_VERSION
+ARG PS3NETSRV_URL
+ARG BUILD_FROM_GIT
 
 # Change working dir
 WORKDIR /tmp
@@ -68,6 +77,7 @@ RUN \
   set -ex && \
   echo "Installing build dependencies..." && \
   apk add --update --no-cache \
+    curl \
     git \
     build-base \
     meson \
@@ -76,15 +86,28 @@ RUN \
     musl-dev \
     musl-dbg \
     musl-utils \
-    tar && \
-  echo "Building ps3netsrv..." && \
-    git clone --depth 1 ${PS3NETSRV_REPO} repo && \
+    tar \
+    unzip
+
+RUN \
+  [ "${BUILD_FROM_GIT:-}" != "true" ] || (echo "Building ps3netsrv from git repo (ref: ${PS3NETSRV_REF})..." && \
+    git clone --depth 1 "${PS3NETSRV_REPO}" --branch "${PS3NETSRV_REF}" repo && \
     cd /tmp/repo/${PS3NETSRV_DIR} && \
-    git checkout ${PS3NETSRV_BRANCH} && \
     meson build --buildtype=release && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
-    cp -v /tmp/repo/${PS3NETSRV_DIR}/build/ps3netsrv /tmp/ps3netsrv-bin/
+    cp -v /tmp/repo/${PS3NETSRV_DIR}/build/ps3netsrv /tmp/ps3netsrv-bin/)
+
+RUN \
+  [ "${BUILD_FROM_GIT:-}" == "true" ] || (echo "Building ps3netsrv from release (ps3netsrv_${PS3NETSRV_VERSION}.zip)..." && \
+    curl -sL --output /tmp/ps3netsrv.zip "${PS3NETSRV_URL}" && \
+    unzip /tmp/ps3netsrv.zip -d /tmp && \
+    mv "/tmp/ps3netsrv_${PS3NETSRV_VERSION}" /tmp/ps3netsrv && \
+    cd /tmp/ps3netsrv/ps3netsrv && \
+    meson build --buildtype=release && \
+    ninja -C build/ && \
+    mkdir -p /tmp/ps3netsrv-bin && \
+    cp -v build/ps3netsrv /tmp/ps3netsrv-bin/)
 
 # Runtime container
 FROM alpine-${TARGETARCH:-amd64}${TARGETVARIANT}
