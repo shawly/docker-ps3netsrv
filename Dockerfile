@@ -100,6 +100,7 @@ RUN \
   set -ex && \
   echo "Installing runtime dependencies..." && \
   apk add --no-cache \
+    bash \
     coreutils \
     shadow \
     tzdata \
@@ -119,6 +120,9 @@ RUN \
 
 # Add files
 COPY rootfs/ /
+
+ENV PS3NETSRV_PORT=38008 \
+    PS3NETSRV_WHITELIST=
 
 # Define mountable directories
 VOLUME ["/games"]
