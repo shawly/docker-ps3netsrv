@@ -34,9 +34,17 @@ ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
 ## Supported tags
 
 <!-- supported tags will be auto updated through workflows! -->
+<!-- edge tags start -->
+- `20240210a-edge`, `8f1e37f-edge`, `8f1e37f451e724c1932a468d8019e2844e6e90fc-edge`, `edge`
+- `20240210-edge`, `e22b4a0-edge`, `e22b4a0edbd889d38b70f8f230886cd086a331ad-edge`
+- `20231215-edge`, `28b5bdb-edge`, `28b5bdbbd35ac6e94c262ba2b03f925646e10a25-edge`
+- `20220813-edge`, `5301277-edge`, `5301277a0eb2275c73d7c82af9cb9e9ec34369e4-edge`
+- `20220421-edge`, `6d8df35-edge`, `6d8df3595aaad324124b610dd5315f4717af5e07-edge`
+<!-- edge tags end -->
 
-- `edge`, `edge-20231215` <!-- edge tag -->
-- `latest`, `v1`, `v1.9`, `v1.9.0`, `20231215` <!-- latest tag -->
+<!-- latest tags start -->
+- `latest`, `v1`, `v1.9`, `v1.9.0`, `20231215`
+<!-- latest tags end -->
 
 ## Image Variants
 
