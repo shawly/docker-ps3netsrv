@@ -1,5 +1,5 @@
 # Docker container for ps3netsrv (or ps3netsvr)
-[![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) ![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
+[![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) ![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/crafty-web/latest) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
 
 This is a Docker container for ps3netsrv (or ps3netsvr).
 
