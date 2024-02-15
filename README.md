@@ -38,7 +38,7 @@ The architectures supported by this image are:
 
 Lo and behold this is the first ps3netsrv container with experimental arm32 and arm64 support!
 
-*I'm declaring this as **experimental** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it.*
+*I'm declaring the arm images as **experimental** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it.*
 
 *I would be glad if you could [create a small report](https://github.com/shawly/docker-ps3netsrv/issues/new/choose) (choose ARM Compatibility Report) to tell me which device you've tested and if it's working or not.*
 
