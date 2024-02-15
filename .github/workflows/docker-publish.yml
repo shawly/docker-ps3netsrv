@@ -1,0 +1,104 @@
+name: Docker
+
+on:
+  push:
+    # Publish `master` as Docker `edge` image.
+    branches:
+      - master
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+      - v*
+
+  # Run tests for any PRs.
+  pull_request:
+
+env:
+  IMAGE_NAME: ps3netsrv
+  IMAGE_TITLE: ps3netsrv
+  IMAGE_DESCRIPTION: Docker container for ps3netsrv
+  APP_VERSION: 20210113
+
+jobs:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        run: |
+          if [ -f docker-compose.test.yml ]; then
+            docker-compose --file docker-compose.test.yml build
+            docker-compose --file docker-compose.test.yml run sut
+          else
+            docker build . --file Dockerfile
+          fi
+
+  # Build images.
+  build:
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+      with:
+        platforms: all
+
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Prepare
+      id: prep
+      run: |
+        DOCKER_IMAGE=${{ github.repository_owner }}/$IMAGE_NAME
+
+        # Strip git ref prefix from version
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+        # Use Docker `edge` tag convention and pr-<number> for pull requests
+        [ "$VERSION" == "master" ] && VERSION=edge
+        [ ${{ github.ref }} == refs/pull/* ] && VERSION=pr-${{ github.event.number }}
+
+        TAGS="${DOCKER_IMAGE}:${VERSION}"  
+        [ "$VERSION" != "edge" ] && TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+
+        echo ::set-output name=version::${VERSION}
+        echo ::set-output name=tags::${TAGS}
+        echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+    - name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: .
+        platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.prep.outputs.tags }}
+        labels: |
+          org.opencontainers.image.title=$IMAGE_TITLE
+          org.opencontainers.image.description=$IMAGE_DESCRIPTION
+          org.opencontainers.image.vendor=${{ github.repository_owner }}
+          org.opencontainers.image.url=${{ github.event.repository.html_url }}
+          org.opencontainers.image.source=${{ github.event.repository.html_url }}
+          org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.version=$APP_VERSION
+
