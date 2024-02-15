@@ -43,7 +43,7 @@ apt-get update
 echo "Installing build prerequisites..."
 apt-get install -y \
     build-essential \
-	libc6-dev
+	linux-headers-generic
 
 #
 # ps3netsrv
