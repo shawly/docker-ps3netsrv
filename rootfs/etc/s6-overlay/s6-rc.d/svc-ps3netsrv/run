@@ -1,6 +1,6 @@
-#!/usr/bin/with-contenv bash
+#!/command/with-contenv bash
 
-cd /games
+cd /games || exit 1
 
 UMASK=${UMASK:-022}
 umask "$UMASK"
