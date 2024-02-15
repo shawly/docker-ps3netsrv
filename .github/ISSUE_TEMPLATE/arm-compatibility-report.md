@@ -10,9 +10,9 @@ assignees: shawly
 # Device
 e.g. Raspberry Pi 1B+
 
-# Status
+## Status
 [x] works
 [ ] not working
 
-# Additional steps to get it to work?
+## Additional steps to get it to work?
 - none
