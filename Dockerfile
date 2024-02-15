@@ -27,7 +27,7 @@ ARG PS3NETSRV_BRANCH
 ENV PS3NETSRV_REPO=${PS3NETSRV_REPO} \
     PS3NETSRV_DIR=${PS3NETSRV_DIR} \
     PS3NETSRV_BRANCH=${PS3NETSRV_BRANCH} \
-    PS3NETSRV_VERSION=20200529
+    PS3NETSRV_VERSION=20200611
 
 # Change working dir.
 WORKDIR /tmp
@@ -96,7 +96,7 @@ EXPOSE 38008
 LABEL \
       org.label-schema.name="ps3netsrv" \
       org.label-schema.description="Docker container for ps3netsrv" \
-      org.label-schema.version="1.4.4" \
+      org.label-schema.version="1.4.5" \
       org.label-schema.vcs-url="https://github.com/shawly/docker-ps3netsrv" \
       org.label-schema.schema-version="1.0"
 
