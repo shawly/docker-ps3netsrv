@@ -42,7 +42,8 @@ apt-get update
 
 echo "Installing build prerequisites..."
 apt-get install -y \
-    build-essential
+    build-essential \
+	libc6-dev
 
 #
 # ps3netsrv
