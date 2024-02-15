@@ -42,8 +42,7 @@ apt-get update
 
 echo "Installing build prerequisites..."
 apt-get install -y \
-    build-essential \
-	linux-headers-generic
+    build-essential
 
 #
 # ps3netsrv
@@ -51,6 +50,8 @@ apt-get install -y \
 cd "$BUILD_DIR"
 echo "Building ps3netsrv..."
 cp -r /builder/* $BUILD_DIR
+mv Makefile Makefile.win
+mv Makefile.linux Makefile
 make
 chmod +x ps3netsrv
 cp ps3netsrv $INSTALL_DIR
