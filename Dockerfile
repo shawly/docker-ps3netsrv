@@ -24,7 +24,7 @@ ENV APP_NAME="PS3NetSvr" \
 VOLUME ["/games"]
 
 # Expose ports.
-EXPORT 38008
+EXPOSE 38008
 
 # Metadata.
 LABEL \
