@@ -1,13 +1,13 @@
-# Docker container for ps3netsrv
+# Docker container for ps3netsrv (or ps3netsvr)
 [![Docker Automated build](https://img.shields.io/docker/automated/shawly/ps3netsrv.svg)](https://hub.docker.com/r/shawly/ps3netsrv/) [![Docker Image](https://images.microbadger.com/badges/image/shawly/ps3netsrv.svg)](http://microbadger.com/#/images/shawly/ps3netsrv) [![Build Status](https://travis-ci.org/shawly/docker-ps3netsrv.svg?branch=master)](https://travis-ci.org/shawly/docker-ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
 
-This is a Docker container for ps3netsrv. (Credit for the baseimage goes to [jlesage](https://github.com/jlesage/docker-baseimage))
+This is a Docker container for ps3netsrv (or ps3netsvr).
 
 ---
 
 [![ps3netsrv logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsrv/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/webMAN-MOD)[![ps3netsrv](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsrv)](https://github.com/aldostools/webMAN-MOD)
 
-ps3netsrv for WebMAN-MOD
+ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binaries built from the latest sources.
 
 ---
 ## Table of Content
