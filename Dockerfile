@@ -9,6 +9,8 @@ ARG ALPINE_VERSION=3.18
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_RELEASE=v3.1.6.2
+ARG S6_OVERLAY_ARCH=x86_64
+ARG S6_OVERLAY_DOWNLOAD_URL=https://github.com/just-containers/s6-overlay/releases/download
 
 # Set PS3NETSRV vars
 ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
@@ -22,43 +24,19 @@ ARG PS3NETSRV_GITHUB_API_URL=https://api.github.com/repos/aldostools/webMAN-MOD/
 # Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
 FROM alpine:${ALPINE_VERSION} as alpine-amd64
 
-ARG S6_OVERLAY_RELEASE
-
-# Add s6-overlay files
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-x86_64.tar.xz /tmp
-
-FROM alpine:${ALPINE_VERSION} as alpine-386
-
-ARG S6_OVERLAY_RELEASE
-
-# Add s6-overlay files
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-i686.tar.xz /tmp
+ARG S6_OVERLAY_ARCH=x86_64
 
 FROM alpine:${ALPINE_VERSION} as alpine-armv6
 
-ARG S6_OVERLAY_RELEASE
-
-# Add s6-overlay files
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-armhf.tar.xz /tmp
+ARG S6_OVERLAY_ARCH=armhf
 
 FROM alpine:${ALPINE_VERSION} as alpine-armv7
 
-ARG S6_OVERLAY_RELEASE
-
-# Add s6-overlay files
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-arm.tar.xz /tmp
+ARG S6_OVERLAY_ARCH=arm
 
 FROM alpine:${ALPINE_VERSION} as alpine-arm64
 
-ARG S6_OVERLAY_RELEASE
-
-# Add s6-overlay files
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
-ADD https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_RELEASE}/s6-overlay-aarch64.tar.xz /tmp
+ARG S6_OVERLAY_ARCH=aarch64
 
 # Build ps3netsrv:master
 FROM alpine:${ALPINE_VERSION} as builder
@@ -126,6 +104,14 @@ RUN \
 # Runtime container
 FROM alpine-${TARGETARCH:-amd64}${TARGETVARIANT}
 
+ARG S6_OVERLAY_RELEASE
+ARG S6_OVERLAY_ARCH
+ARG S6_OVERLAY_DOWNLOAD_URL
+
+# Add s6-overlay files
+ADD ${S6_OVERLAY_DOWNLOAD_URL}/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
+ADD ${S6_OVERLAY_DOWNLOAD_URL}/${S6_OVERLAY_RELEASE}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz /tmp
+
 # Copy binary from build container
 COPY --from=builder /tmp/ps3netsrv-bin/ps3netsrv /usr/local/bin/ps3netsrv
 
@@ -145,7 +131,7 @@ RUN \
     xz && \
   echo "Extracting s6 overlay..." && \
     tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
   echo "Creating ps3netsrv user..." && \
     useradd -u 1000 -U -M -s /bin/false ps3netsrv && \
     usermod -G users ps3netsrv && \

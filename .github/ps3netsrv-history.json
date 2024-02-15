@@ -1,0 +1,252 @@
+[
+  {
+    "version": "20240210a",
+    "commits": [
+      "8f1e37f451e724c1932a468d8019e2844e6e90fc"
+    ]
+  },
+  {
+    "version": "20240210",
+    "commits": [
+      "e22b4a0edbd889d38b70f8f230886cd086a331ad",
+      "a0f4303ec9087c7e24de790645c71d5e2025f84b",
+      "96741a383934cc10d686be504e866fa6fdef9996"
+    ]
+  },
+  {
+    "version": "20231215",
+    "commits": [
+      "28b5bdbbd35ac6e94c262ba2b03f925646e10a25",
+      "ace102d14a3d06c70ed062423081f2c20cb091b8"
+    ]
+  },
+  {
+    "version": "20220813",
+    "commits": [
+      "5301277a0eb2275c73d7c82af9cb9e9ec34369e4"
+    ]
+  },
+  {
+    "version": "20220421",
+    "commits": [
+      "6d8df3595aaad324124b610dd5315f4717af5e07",
+      "66c4df9b0e4bea433eaba1edaafa17d9e70a521c"
+    ]
+  },
+  {
+    "version": "20220330",
+    "commits": [
+      "33652237e41492c2ec16e6aa3faa0807a11a440b"
+    ]
+  },
+  {
+    "version": "20220326",
+    "commits": [
+      "dcdffeac7aafda6af0d7f356ff17d20e6517504d",
+      "1a018c6141702baf904260fa9b231a0fde9dd76c"
+    ]
+  },
+  {
+    "version": "20220301",
+    "commits": [
+      "8c1e805c240a1a28a3c8577aeac12bedc9a4d03a",
+      "727f4f7d366b19c26b695ec7aab1eeec1de27669",
+      "5937b5c38ff0c0b7af597c57ac069bbb2c08de3a"
+    ]
+  },
+  {
+    "version": "20220228",
+    "commits": [
+      "2d363a436403a45c27be0a657b2e317f19c794c8"
+    ]
+  },
+  {
+    "version": "20220227",
+    "commits": [
+      "9344a83d90c292b3cfdef4deb91fc381ecc026a4"
+    ]
+  },
+  {
+    "version": "20220206",
+    "commits": [
+      "4537851d0b86f84c962d280b9ecf1bb31d32662f"
+    ]
+  },
+  {
+    "version": "20201030",
+    "commits": [
+      "0ad6f7409fbae854c9cc6f93d5feaa6e12a04a43",
+      "1b6ec2725b0d08c46acec6268948e56f3776267e",
+      "cce14b3587a700022ba198178b7a03fa873ce37d"
+    ]
+  },
+  {
+    "version": "20201014",
+    "commits": [
+      "c8079c1bc2e6a185144bee37e391c3d4bac9bb48",
+      "bf6a8d1ef4b870442b5c8d2276c8326fcc39a75e",
+      "fc5e8519f3235b339a1ea50436a85a1238c4c550",
+      "229f50edac6a8d9124b55d723116ba1e0fe1424a",
+      "d409f6af5e758517ae568ed6b8bb75d52cafb395",
+      "df8fdfcfed863c9b30274b9f1a50a7a432cdf84c"
+    ]
+  },
+  {
+    "version": "20200708",
+    "commits": [
+      "f8c6cccb71d2a65cdf1314b14521c82689d7f6c9",
+      "11c6e125dd64370d61f19d024047c5fd8e3affd2",
+      "ce356250e952097c0426d6a0626efe1dce6b412d",
+      "672eaf57e298f63589619a501c82b3cd7b6366e8"
+    ]
+  },
+  {
+    "version": "20200707",
+    "commits": [
+      "b1b9f6c606c13743a130615cb5472c1338d1ee8b"
+    ]
+  },
+  {
+    "version": "20200704",
+    "commits": [
+      "8e0fa2f34d6c3eb43b1ee271d910b3245f0edc45"
+    ]
+  },
+  {
+    "version": "20200620",
+    "commits": [
+      "4208e205b777201b40dbcc06d99b85f0072918de",
+      "fe030544421f58fb1b77b70b1ca0032ae4133cc7"
+    ]
+  },
+  {
+    "version": "20200611",
+    "commits": [
+      "a0d7ff9470d922a379e9d383e0ac619b7ca2ee44"
+    ]
+  },
+  {
+    "version": "20200610",
+    "commits": [
+      "b27427026a1267c3ce29b8f47435f18f9241ec24"
+    ]
+  },
+  {
+    "version": "20200529",
+    "commits": [
+      "6e32a14a17736421670cecbf6da7d2c749bff463",
+      "273b4b8b7a15d57a9fd4baeb14958d7b1f9989c5"
+    ]
+  },
+  {
+    "version": "20200528",
+    "commits": [
+      "c07999af7b8917edc8c2f1af8f45818be9af5fbb",
+      "0feb8d19eed5e2fc5b5dcbc0f69b01b48dfc2dd0"
+    ]
+  },
+  {
+    "version": "20200527A",
+    "commits": [
+      "c5d5dfb20d9e808a62fa0d7f911f93f6ba269c2c"
+    ]
+  },
+  {
+    "version": "20200527",
+    "commits": [
+      "8b285db5d4bdc98948216c990d1f0efc1e53906e"
+    ]
+  },
+  {
+    "version": "20200525",
+    "commits": [
+      "8c34fa967bd6bf7073b3ebc6949c9b04a0e2475d"
+    ]
+  },
+  {
+    "version": "20200524A",
+    "commits": [
+      "6772eb2e69c98ff346ace0eaabf8d1ded71bd8a3"
+    ]
+  },
+  {
+    "version": "20200523",
+    "commits": [
+      "582755aa7e9049240fce85168c46996536f9240f"
+    ]
+  },
+  {
+    "version": "20200521",
+    "commits": [
+      "24834d84049304e561a1aafc2636a77e679c4756"
+    ]
+  },
+  {
+    "version": "20200520A",
+    "commits": [
+      "7f4fdb130995b21e96a166f433001d9f0039daea",
+      "540f0be4b77357de78150e72e599dc6250c9263a"
+    ]
+  },
+  {
+    "version": "20200520",
+    "commits": [
+      "588f6e911cb69dfa9547bc2e97264696d915dc39",
+      "b1d9fc3715c6288b5770bbfe6fe483cbd7ec1cb4"
+    ]
+  },
+  {
+    "version": "20200519B",
+    "commits": [
+      "7131902f1883f0e41dda02744793c18cc9b0a7e6"
+    ]
+  },
+  {
+    "version": "20200519A",
+    "commits": [
+      "a8db100b81f24b2218acfa529952db83fc20cc18"
+    ]
+  },
+  {
+    "version": "20200519",
+    "commits": [
+      "6fcc81691a36d0d6486c6d2110c4b03571763074"
+    ]
+  },
+  {
+    "version": "20200518",
+    "commits": [
+      "8e69256289e986dbf561767501e4a1f64fddf63e"
+    ]
+  },
+  {
+    "version": "20200517A",
+    "commits": [
+      "3f3c7ed8b7d13d41ba3bb270b8b43952e7013c4f"
+    ]
+  },
+  {
+    "version": "20200517",
+    "commits": [
+      "a55bc2a99e865c51ebddaad508c534d1b41e3e88"
+    ]
+  },
+  {
+    "version": "20200505",
+    "commits": [
+      "54f5eb8a8f98ebfef79d93e3319365d3257bb5c3",
+      "968c9d90d67831654dd0416b2995022200e5dff8"
+    ]
+  },
+  {
+    "version": "20190630",
+    "commits": [
+      "cdf3d30e0205978ceb7478d65242c7bcbbbb9884",
+      "0ffa9f6d905169d6674b1205c323dc8adac9b56a",
+      "85276922fee1b3a6ef2e1b764872f31c87054e9c",
+      "f16dd1a10f66fadd6b5c7e7745754431159fa9d0",
+      "22476044db081ad00f1bbd2207280ee858b23f2d",
+      "ba7216db64916c41b5ab331ee00e0e74b8bef6e0"
+    ]
+  }
+]
