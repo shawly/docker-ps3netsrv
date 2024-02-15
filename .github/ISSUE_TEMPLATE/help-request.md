@@ -26,6 +26,11 @@ Output of `docker ps -a -f "ancestor=shawly/ps3netsrv"`:
 // paste the output of the docker ps -a -f "ancestor=shawly/ps3netsrv" command here
 ```
 
+Output of `docker logs CONTAINERNAME` (replace *CONTAINERNAME* with your ps3netsrv container's name):
+```
+// paste the output of the docker logs CONTAINERNAME command here
+```
+
 Output of `id` (you should be logged in with the user that owns your games directory):
 ```
 // paste the output of the id command here
