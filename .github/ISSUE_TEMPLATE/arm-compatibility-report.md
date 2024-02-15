@@ -2,17 +2,17 @@
 name: ARM Compatibility Report
 about: For reporting compatibility with ARM devices.
 title: 'Compatibility report: [DEVICE]'
-labels: arm32-compatible, arm64-compatible, arm-not-compatible
+labels: arm-not-compatible, arm32-compatible, arm64-compatible
 assignees: shawly
 
 ---
 
-# Device
+**Device:**
 e.g. Raspberry Pi 1B+
 
-## Status
+**Status:**
 [x] works
 [ ] not working
 
-## Additional steps to get it to work?
+**Additional steps to get it to work?**
 - none
