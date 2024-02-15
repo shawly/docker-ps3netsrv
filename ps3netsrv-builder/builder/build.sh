@@ -1,29 +1,13 @@
-#!/bin/bash
+#!/bin/ash
 
-set -e
-set -o pipefail
-
-export DEBIAN_FRONTEND=noninteractive
-
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-
-usage() {
-    echo "usage: $(basename $0) OUTPUT_DIR [ROOT_EXEC_DIR]
-  Arguments:
-    OUTPUT_DIR     Directory where the tarball will be copied to.
-    ROOT_EXEC_DIR  Root directory where ps3netsrv will be located at execution
-                   time.  Default: '/opt/ps3netsrv'.
-"
-}
+SCRIPT_DIR="$(dirname "${basename $0}")"
 
 # Validate script arguments.
 if [ -z "$1" ]; then
     echo "ERROR: Output directory must be specified."
-    usage
     exit 1
 elif [ -n "$2" ] && [[ $2 != /* ]]; then
     echo "ERROR: Invalid root execution directory."
-    usage
     exit 1
 fi
 
@@ -37,18 +21,13 @@ mkdir -p "$TARBALL_DIR"
 mkdir -p "$BUILD_DIR"
 mkdir -p "$INSTALL_DIR"
 
-echo "Updating APT cache..."
-apt-get update
-
 echo "Installing build prerequisites..."
-apt-get install -y \
-    build-essential \
-    libmbedtls-dev \
+apk add --update alpine-sdk \
+    mbedtls-dev \
     python3 \
-    python3-pip \
-    python3-setuptools \
-    python3-wheel \
-    ninja-build
+    py-pip \
+    py3-setuptools \
+    ninja
 
 pip3 install meson
 
