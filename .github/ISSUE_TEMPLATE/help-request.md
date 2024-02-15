@@ -1,8 +1,8 @@
 ---
 name: Help request
 about: If you have trouble setting up your container.
-title: ''
-labels: ''
+title: "[HELP]"
+labels: help wanted
 assignees: shawly
 
 ---
