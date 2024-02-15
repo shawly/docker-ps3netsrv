@@ -3,9 +3,6 @@
 set -e # Exit immediately if a command exits with a non-zero status.
 set -u # Treat unset variables as an error.
 
-# Take ownership of the games directory content.
-chown -R $USER_ID:$GROUP_ID /games
-
 # Take ownership of the log file.
 touch /var/log/ps3netsrv.log
 chown $USER_ID:$GROUP_ID /var/log/ps3netsrv.log

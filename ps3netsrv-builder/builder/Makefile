@@ -1,4 +1,4 @@
-OS =  windows
+OS =  linux
 BUILD_TYPE = release
 
 OUTPUT := ps3netsrv
