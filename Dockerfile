@@ -14,7 +14,7 @@ ARG S6_OVERLAY_RELEASE=v3.1.6.2
 ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
 ARG PS3NETSRV_SRC_DIR=_Projects_/ps3netsrv
 ARG PS3NETSRV_SRC_REF=master
-ARG BUILD_FROM_GIT=false
+ARG BUILD_FROM_GIT=true
 
 ARG PS3NETSRV_VERSION=20240210
 ARG PS3NETSRV_GITHUB_API_URL=https://api.github.com/repos/aldostools/webMAN-MOD/releases

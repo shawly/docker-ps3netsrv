@@ -1,0 +1,49 @@
+name: Build ps3netsrv release history
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          ref: main
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          ref: master
+          path: /tmp/webman-mod
+          repository: aldostools/webMAN-MOD
+
+      - name: Fetch release version
+        id: fetch-release
+        run: |
+          echo "Gathering ps3netsrv versions per commit..."
+          git -C /tmp/webman-mod log --pretty=format:%H -- _Projects_/ps3netsrv ':(exclude,icase)_Projects_/ps3netsrv/bins/' ':(exclude,icase)_Projects_/ps3netsrv/*.md' ':(exclude,icase)_Projects_/ps3netsrv/*.txt' | \
+            xargs -I {} bash -c '
+                version=$(git -C /tmp/webman-mod show "{}:_Projects_/ps3netsrv/src/main.cpp" 2>/dev/null | sed -nr "s/.+ps3netsrv build ([0-9a-zA-Z]+).*/\1/p")
+                [[ -z "$version" ]] && exit
+                commit={}
+
+                echo "{ \"version\": \"$version\", \"commits\": \"$commit\"}"' | \
+            jq -s | \
+            tee /tmp/ps3netsrv_history_raw.json
+
+          echo "Merging ps3netsrv versions per commit..."
+          jq '[reduce .[] as $d (null; .[$d.version] += [$d.commits]) | to_entries | sort_by(.key) | reverse | .[] | { version: .key, commits: .value}]' /tmp/ps3netsrv_history_raw.json | tee .github/ps3netsrv-history.json
+
+      - name: Check for modified files
+        id: git-check
+        run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
+
+      - name: Commit latest release version
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit -am "chore(history): update ps3netsrv history"
+          git push
