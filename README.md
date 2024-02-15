@@ -70,11 +70,9 @@ The architectures supported by this image are:
 | Architecture | Status                                                          |
 | :----------: | --------------------------------------------------------------- |
 |    x86-64    | working                                                         |
-|     x86      | untested                                                        |
 |    arm64     | [working](https://github.com/shawly/docker-ps3netsrv/issues/19) |
 |    armv7     | untested                                                        |
 |    armhf     | working                                                         |
-|  ~ppc64le~   | dropped                                                         |
 
 _I'm declaring the arm images as **untested** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it._
 

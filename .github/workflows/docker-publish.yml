@@ -1,19 +1,15 @@
-name: Docker
+name: Docker build and publish
 
 on:
   push:
     paths-ignore:
-      - '*.md'
-      - '**/*.md'
+      - "*.md"
+      - "**/*.md"
 
     # Publish `main` as Docker `edge` image.
     branches:
       - main
       - develop
-      - 'release/*'
-
-    tags:
-      - 'v*.*.*'
 
   # Run tests for any PRs.
   pull_request:
@@ -22,19 +18,31 @@ env:
   IMAGE_NAME: ps3netsrv
   IMAGE_TITLE: ps3netsrv
   IMAGE_DESCRIPTION: Docker container for ps3netsrv
-  APP_VERSION: "20240709"
-  RELEASE_TAG: "1.47.46"
+  IMAGE_LICENSE: gpl-3.0-or-later
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
-  test:
+  build-matrix:
     runs-on: ubuntu-latest
-
+    outputs:
+      releases: ${{ steps.set-matrix.outputs.releases }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get latest five ps3netsrv versions
+        id: set-matrix
+        run: |
+          version_commit_map=$(jq -cr --arg gitref ${{ github.ref }} -f .github/ps3netsrv-filter.jq .github/ps3netsrv-history.json)
+          echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
+
+  # Run tests build
+  test-build:
+    needs: build-matrix
+    strategy:
+      matrix:
+        release: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Set up Docker Buildx
         id: buildx_test
         uses: docker/setup-buildx-action@v3
@@ -43,22 +51,48 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.test-buildx-cache
-          key: ${{ runner.os }}-test-buildx-${{ env.APP_VERSION }}
+          key: ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
           restore-keys: |
-            ${{ runner.os }}-test-buildx-${{ env.APP_VERSION }}
-            ${{ runner.os }}-test-buildx-
+            ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
+            ${{ runner.os }}-test-buildx-${{ github.ref }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test tag splitting
+        env:
+          PS3NETSRV_VERSION: ${{ matrix.release.version }}
+          PS3NETSRV_SRC_REF: ${{ matrix.release.ref }}
+          PS3NETSRV_COMMITS: ${{ join(matrix.release.commits, ',') }}
+          PS3NETSRV_TAGS: ${{ join(matrix.release.tags, ',') }}
+        run: |
+          DOCKERIO_IMAGE=docker.io/${{ github.repository_owner }}/$IMAGE_NAME
+          GHCRIO_IMAGE=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+
+          # Split PS3NETSRV_TAGS by commata
+          IFS=, read -r -a TAGS <<< "$PS3NETSRV_TAGS"
+
+          echo "Would create tags:"
+          for TAG in "${TAGS[@]}"; do
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+          done
+          echo "DOCKERIO_TAGS=${DOCKERIO_TAGS:-}"
+          echo "GHCRIO_TAGS=${GHCRIO_TAGS:-}"
 
       - name: Test build
-        id: docker_build_test
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx_test.outputs.name }}
           context: .
           platforms: linux/amd64
           push: false
+          load: true
           build-args: |
-            PS3NETSRV_RELEASE=${{ env.RELEASE_TAG }}
-            PS3NETSRV_VERSION=${{ env.APP_VERSION }}
+            BUILD_FROM_GIT=true
+            PS3NETSRV_VERSION=${{ matrix.release.version }}
+            PS3NETSRV_SRC_REF=${{ matrix.release.ref }}
+          tags: ps3netsrv:test-build-${{ matrix.release.version }}
           cache-from: type=local,src=/tmp/.test-buildx-cache
           cache-to: type=local,dest=/tmp/.test-buildx-cache-new
 
@@ -70,13 +104,41 @@ jobs:
           rm -rf /tmp/.test-buildx-cache
           mv /tmp/.test-buildx-cache-new /tmp/.test-buildx-cache
 
+      - name: Create ps3netsrv container...
+        run: |
+          echo "Starting ps3netsrv container..."
+          docker run -t -d --name ps3netsrv-test ps3netsrv:test-build-${{ matrix.release.version }}
+          echo "Trying 30 seconds to check for startup..."
+          count=0
+          exitcode=1
+          while [ $count -lt 30 ]; do
+            if docker logs ps3netsrv-test | grep "ps3netsrv build ${{ matrix.release.version }}" >/dev/null; then
+              docker logs ps3netsrv-test
+              echo "Success!"
+              exitcode=0
+              break
+            else
+              echo "Waiting for ps3netsrv to start..."
+              exitcode=1
+            fi
+            sleep 1
+            count=$((count + 1))
+          done
+
+          docker stop ps3netsrv-test >/dev/null
+          exit "$exitcode"
+
   # Build images.
   build:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-
-    needs: test
-
+    outputs:
+      publish: ${{ steps.prep.outputs.publish }}
+      readme_tags: ${{ steps.prep.outputs.readme_tags }}
+    needs: [build-matrix, test-build]
+    strategy:
+      matrix:
+        release: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,63 +167,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare
+      - name: Prepare variables
         id: prep
+        env:
+          PS3NETSRV_VERSION: ${{ matrix.release.version }}
+          PS3NETSRV_SRC_REF: ${{ matrix.release.ref }}
+          PS3NETSRV_COMMITS: ${{ join(matrix.release.commits, ',') }}
+          PS3NETSRV_TAGS: ${{ join(matrix.release.tags, ',') }}
         run: |
           DOCKERIO_IMAGE=docker.io/${{ github.repository_owner }}/$IMAGE_NAME
           GHCRIO_IMAGE=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
-          # Strip git ref prefix from version
-          VERSION_FULL=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\)$,\1,')
-          VERSION_MINOR=$(echo "$VERSION_FULL" | sed 's,\.[^.]*$,,')
-          VERSION_MAJOR=$(echo "$VERSION_MINOR" | sed 's,\.[^.]*$,,')
+          # Split PS3NETSRV_TAGS by commata
+          IFS=, read -r -a TAGS <<< "$PS3NETSRV_TAGS"
 
-          # Use Docker `edge` tag convention and pr-<number> for pull requests
-          [ "$VERSION_FULL" == "main" ] && VERSION_FULL=edge
-          [ ${{ github.ref }} == refs/pull/* ] && VERSION_FULL=pr-${{ github.event.number }}
+          for TAG in "${TAGS[@]}"; do
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+            README_TAGS="${README_TAGS}, \`${TAG}\`"
+          done
 
-          # Build all tags
-          DOCKERIO_TAGS="${DOCKERIO_IMAGE}:${VERSION_FULL}"
-          [ "$VERSION_FULL" != "edge" ] && DOCKERIO_TAGS="$DOCKERIO_TAGS,${DOCKERIO_IMAGE}:${VERSION_MINOR},${DOCKERIO_IMAGE}:${VERSION_MAJOR},${DOCKERIO_IMAGE}:${APP_VERSION},${DOCKERIO_IMAGE}:latest"
-          [ "$VERSION_FULL" == "edge" ] && DOCKERIO_TAGS="$TAGS,${DOCKERIO_IMAGE}:${VERSION_FULL}-${APP_VERSION}"
-          GHCRIO_TAGS="${GHCRIO_IMAGE}:${VERSION_FULL}"
-          [ "$VERSION_FULL" != "edge" ] && GHCRIO_TAGS="$GHCRIO_TAGS,${GHCRIO_IMAGE}:${VERSION_MINOR},${GHCRIO_IMAGE}:${VERSION_MAJOR},${GHCRIO_IMAGE}:${APP_VERSION},${GHCRIO_IMAGE}:latest"
-          [ "$VERSION_FULL" == "edge" ] && GHCRIO_TAGS="$GHCRIO_TAGS,${GHCRIO_IMAGE}:${VERSION_FULL}-${APP_VERSION}"
-
-          # Build tags for README.md
-          [ "$VERSION_FULL" != "edge" ] && README_TAGS="\`latest\`, \`${VERSION_MAJOR}\`, \`${VERSION_MINOR}\`, \`${VERSION_FULL}\`, \`${APP_VERSION}\`"
-          [ "$VERSION_FULL" == "edge" ] && README_TAGS="\`${VERSION_FULL}\`, \`${VERSION_FULL}-${APP_VERSION}\`"
-
-          # Replace supported latest tags in README.md
-          if [ "$VERSION_FULL" != "edge" ]; then
-              sed -i '/- `latest`.*<!-- latest tag -->/c- '"${README_TAGS}"' <!-- latest tag -->' README.md
-          fi
-          # Replace supported edge tags in README.md
-          if [ "$VERSION_FULL" == "edge" ]; then
-              sed -i '/- `edge`.*<!-- edge tag -->/c- '"${README_TAGS}"' <!-- edge tag -->' README.md
-          fi
-
-          # Use Docker `edge` tag convention and pr-<number> for pull requests
-          [ "$VERSION_FULL" == "main" ] && VERSION_FULL=edge
-          [ ${{ github.ref }} == refs/pull/* ] && VERSION_FULL=pr-${{ github.event.number }}
-
-          # Build tags for README.md
-          [ "$VERSION_FULL" != "edge" ] && README_TAGS="\`latest\`, \`${VERSION_MAJOR}\`, \`${VERSION_MINOR}\`, \`${VERSION_FULL}\`, \`${APP_VERSION}\`"
-          [ "$VERSION_FULL" == "edge" ] && README_TAGS="\`${VERSION_FULL}\`, \`${VERSION_FULL}-${APP_VERSION}\`"
-
-          echo "version=${VERSION_FULL}" >> $GITHUB_OUTPUT
+          echo "version=${PS3NETSRV_VERSION}" >> $GITHUB_OUTPUT
           echo "tags=${DOCKERIO_TAGS},${GHCRIO_TAGS}" >> $GITHUB_OUTPUT
-          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "readme_tags=${README_TAGS}" >> $GITHUB_OUTPUT
-          echo "release=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags') }}" >> $GITHUB_OUTPUT
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "publish=${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags') }}" >> $GITHUB_OUTPUT
 
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ env.APP_VERSION }}
+          key: ${{ runner.os }}-buildx-${{ matrix.release.version }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ env.APP_VERSION }}
+            ${{ runner.os }}-buildx-${{ matrix.release.version }}
             ${{ runner.os }}-buildx-
 
       - name: Build and push
@@ -170,45 +208,82 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
-          platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6
-          push: ${{ steps.prep.outputs.release == 'true' }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+          push: ${{ steps.prep.outputs.publish == 'true' }}
           tags: ${{ steps.prep.outputs.tags }}
           build-args: |
-            PS3NETSRV_RELEASE=${{ env.RELEASE_TAG }}
-            PS3NETSRV_VERSION=${{ env.APP_VERSION }}
+            BUILD_FROM_GIT=true
+            PS3NETSRV_VERSION=${{ matrix.release.version }}
+            PS3NETSRV_SRC_REF=${{ matrix.release.ref }}
           labels: |
-            org.opencontainers.image.title=$IMAGE_TITLE
-            org.opencontainers.image.description=$IMAGE_DESCRIPTION
+            org.opencontainers.image.title=${{ env.IMAGE_TITLE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.url=${{ github.event.repository.html_url }}
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=$APP_VERSION
+            org.opencontainers.image.revision=${{ matrix.release.ref }}
+            org.opencontainers.image.version=${{ matrix.release.version }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+          annotations: |
+            org.opencontainers.image.title=${{ env.IMAGE_TITLE }}
+            org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.revision=${{ matrix.release.ref }}
+            org.opencontainers.image.version=${{ matrix.release.version }}
+            org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  update-readme:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [build-matrix, build]
+    steps:
       - name: Checkout main
-        if: steps.prep.outputs.release == 'true'
+        if: needs.build.outputs.publish == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Update README.md
-        if: steps.prep.outputs.release == 'true'
-        id: update-readme
+      - name: Prepare variables
+        if: needs.build.outputs.publish == 'true'
+        id: prep
+        env:
+          PS3NETSRV_RELEASES: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
         run: |
-          # Replace supported latest tags in README.md
-          if [ "${{ steps.prep.outputs.version }}" != "edge" ]; then
-              sed -i '/- `latest`.*<!-- latest tag -->/c- ${{ steps.prep.outputs.readme_tags }} <!-- latest tag -->' README.md
-          fi
-          # Replace supported edge tags in README.md
-          if [ "${{ steps.prep.outputs.version }}" == "edge" ]; then
-              sed -i '/- `edge`.*<!-- edge tag -->/c- ${{ steps.prep.outputs.readme_tags }} <!-- edge tag -->' README.md
+          README_TAGS=$(jq -r '"- " + (.[] | [.tags[] | "`" + . + "`"] | join(", "))' <<< "$PS3NETSRV_RELEASES")
+
+          # Replace supported tags in README.md
+          # Define the start and end comments in the README.md file
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            start_comment='<!-- edge tags start -->'
+            end_comment='<!-- edge tags end -->'
+          else
+            start_comment='<!-- latest tags start -->'
+            end_comment='<!-- latest tags end -->'
           fi
 
+          # Cleanout space between start and end comment
+          sed -i '/'${start_comment}'/,/'${end_comment}'/ { //!d }' README.md
+
+          # Replace the tags
+          sed -i "\\~${start_comment}~,\\~${end_comment}~ { \\|${start_comment}|r /dev/stdin
+          }" README.md <<< "$README_TAGS"
+
       - name: Check for modified files
-        if: steps.prep.outputs.release == 'true'
+        if: needs.build.outputs.publish == 'true'
         id: git-check
         run: echo modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true") >> $GITHUB_OUTPUT
 
@@ -220,11 +295,3 @@ jobs:
           git add README.md
           git commit -m "docs(README): update supported tags"
           git push
-
-      # Temp fix
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
