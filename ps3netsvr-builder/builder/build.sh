@@ -49,7 +49,7 @@ apt-get install -y \
 #
 cd "$BUILD_DIR"
 echo "Building ps3netsrv..."
-cp /builder/* $BUILD_DIR
+cp -r /builder/* $BUILD_DIR
 make
 chmod +x ps3netsrv
 cp ps3netsrv $INSTALL_DIR
