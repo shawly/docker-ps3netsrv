@@ -191,8 +191,8 @@ services:
     image: shawly/ps3netsrv:latest
     environment:
       TZ: Europe/Berlin
-      USER_ID: 38008
-      GROUP_ID: 38008
+      USER_ID: 1000
+      GROUP_ID: 1000
     ports:
       - "38008:38008"
     volumes:
