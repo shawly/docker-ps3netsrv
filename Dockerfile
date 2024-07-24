@@ -8,7 +8,7 @@
 ARG ALPINE_VERSION=3.18
 
 # Set vars for s6 overlay
-ARG S6_OVERLAY_RELEASE=v3.1.6.2
+ARG S6_OVERLAY_RELEASE=v3.2.0.0
 ARG S6_OVERLAY_ARCH=x86_64
 ARG S6_OVERLAY_DOWNLOAD_URL=https://github.com/just-containers/s6-overlay/releases/download
 
