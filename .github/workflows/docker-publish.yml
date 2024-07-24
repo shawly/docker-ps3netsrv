@@ -34,6 +34,7 @@ jobs:
         run: |
           version_commit_map=$(jq -cr --arg gitref ${{ github.ref }} -f .github/ps3netsrv-filter.jq .github/ps3netsrv-history.json)
           echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
+          echo "version_commit_map=${version_commit_map}"
 
   # Run tests build
   test-build:
