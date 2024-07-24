@@ -191,8 +191,8 @@ services:
     image: shawly/ps3netsrv:latest
     environment:
       TZ: Europe/Berlin
-      USER_ID: 38008
-      GROUP_ID: 38008
+      USER_ID: 38008  # change this to the uid of the user that owns your games folder
+      GROUP_ID: 38008  # change this to the gid of the user that owns your games folder
     ports:
       - "38008:38008"
     volumes:
