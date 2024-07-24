@@ -14,6 +14,7 @@ def add_version_to_tags(gitref):
 def add_commit_to_tags(gitref):
   .[] |= . + { "tags": (.tags + [(.commits | first)[:7] + (if gitref != "main" then "-edge" else "" end), (.commits | first) + (if gitref != "main" then "-edge" else "" end)]) };
 
+# Add latest commit as ref
 def add_latest_commit_as_ref:
   .[] |= . + { "ref": (.commits | first) };
 

@@ -19,6 +19,9 @@ env:
   IMAGE_TITLE: ps3netsrv
   IMAGE_DESCRIPTION: Docker container for ps3netsrv
   IMAGE_LICENSE: gpl-3.0-or-later
+  ALPINE_VERSION: 3.18
+  DEBIAN_VERSION: bookworm-slim
+  DEFAULT_BASE: alpine
 
 jobs:
   build-matrix:
@@ -33,8 +36,8 @@ jobs:
         id: set-matrix
         run: |
           version_commit_map=$(jq -cr --arg gitref ${{ github.ref }} -f .github/ps3netsrv-filter.jq .github/ps3netsrv-history.json)
-          echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
           echo "version_commit_map=${version_commit_map}"
+          echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
 
   # Run tests build
   test-build:
@@ -42,6 +45,7 @@ jobs:
     strategy:
       matrix:
         release: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
+        baseimage: [alpine, slim]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -52,9 +56,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.test-buildx-cache
-          key: ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
+          key: ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ matrix.baseimage }}-${{ github.ref }}
           restore-keys: |
-            ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
+            ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ matrix.baseimage }}-${{ github.ref }}
             ${{ runner.os }}-test-buildx-${{ github.ref }}
 
       - name: Checkout
@@ -75,8 +79,13 @@ jobs:
 
           echo "Would create tags:"
           for TAG in "${TAGS[@]}"; do
-            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
-            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            # If default base we also tag the image without the base name
+            if [[ ${{ matrix.baseimage }} == $DEFAULT_BASE ]]; then
+              DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+              GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+            fi
           done
           echo "DOCKERIO_TAGS=${DOCKERIO_TAGS:-}"
           echo "GHCRIO_TAGS=${GHCRIO_TAGS:-}"
@@ -85,7 +94,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx_test.outputs.name }}
-          context: .
+          file: ${{ matrix.baseimage }}.Dockerfile
           platforms: linux/amd64
           push: false
           load: true
@@ -93,7 +102,7 @@ jobs:
             BUILD_FROM_GIT=true
             PS3NETSRV_VERSION=${{ matrix.release.version }}
             PS3NETSRV_SRC_REF=${{ matrix.release.ref }}
-          tags: ps3netsrv:test-build-${{ matrix.release.version }}
+          tags: ps3netsrv:test-build-${{ matrix.release.version }}-${{ matrix.baseimage }}
           cache-from: type=local,src=/tmp/.test-buildx-cache
           cache-to: type=local,dest=/tmp/.test-buildx-cache-new
 
@@ -108,7 +117,7 @@ jobs:
       - name: Create ps3netsrv container...
         run: |
           echo "Starting ps3netsrv container..."
-          docker run -t -d --name ps3netsrv-test ps3netsrv:test-build-${{ matrix.release.version }}
+          docker run -t -d --name ps3netsrv-test ps3netsrv:test-build-${{ matrix.release.version }}-${{ matrix.baseimage }}
           echo "Trying 30 seconds to check for startup..."
           count=0
           exitcode=1
@@ -183,9 +192,15 @@ jobs:
           IFS=, read -r -a TAGS <<< "$PS3NETSRV_TAGS"
 
           for TAG in "${TAGS[@]}"; do
-            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
-            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
-            README_TAGS="${README_TAGS}, \`${TAG}\`"
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            README_TAGS="${README_TAGS}, \`${TAG}-${{ matrix.baseimage }}\`"
+            # If default base we also tag the image without the base name
+            if [[ ${{ matrix.baseimage }} == $DEFAULT_BASE ]]; then
+              DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+              GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+              README_TAGS="${README_TAGS}, \`${TAG}\`"
+            fi
           done
 
           echo "version=${PS3NETSRV_VERSION}" >> $GITHUB_OUTPUT
@@ -208,7 +223,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: .
+          file: ${{ matrix.baseimage }}.Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
           push: ${{ steps.prep.outputs.publish == 'true' }}
           tags: ${{ steps.prep.outputs.tags }}

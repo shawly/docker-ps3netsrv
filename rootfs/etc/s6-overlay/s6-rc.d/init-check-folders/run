@@ -1,0 +1,84 @@
+#!/command/with-contenv bash
+
+echo '
+-------------------------------------
+Checking folder structure of /games directory
+-------------------------------------'
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+declare -a folders=("GAMES" "PS3ISO" "PSXISO" "PS2ISO" "PSPISO" "BDISO" "DVDISO" "ROMS" "GAMEI" "PKG" "MOVIES" "MUSIC" "PICTURE" "REDKEY")
+declare -a existing_folders=()
+
+function check_permissions() {
+    local path
+    path="${1:-}"
+    if ! s6-setuidgid ps3netsrv test -r "${path}"; then
+        echo -e >&2 "${RED}ERROR: ${path} is not readable for user ps3netsrv! Check ownership and permissions!${NC}"
+        echo -e >&2 "${path} is owned by $(stat -c '%U' "${path}") and has permissions $(stat -c '%A' "${path}")"
+        ls -la "${path}"
+    else
+        echo -e "${GREEN}OK: ${path} is readable${NC}"
+        if [[ -z "$(ls -A "${path}")" ]]; then
+            echo -e >&2 "${YELLOW}WARNING: ${path} is empty, make sure to put your games here!${NC}"
+        fi
+        existing_folders+=("${path}")
+    fi
+}
+
+for folder in "${folders[@]}"; do
+    echo "Checking for ${folder} directory or INI file... "
+    if [[ -d "/games/${folder}" ]]; then
+        echo "Found /games/${folder}, checking permissions..."
+        check_permissions "/games/${folder}"
+    fi
+
+    if [[ -f "/games/${folder}.INI" ]]; then
+        echo -e "${GREEN}OK: Found /games/${folder}.INI, checking if linked directories inside exist...${NC} "
+        mapfile -t ini_folders <"/games/${folder}.INI"
+        for linked_dir in "${ini_folders[@]}"; do
+            if [[ -d "${linked_dir}" ]]; then
+                echo "Found linked directory ${linked_dir}, checking permissions..."
+                check_permissions "${linked_dir}"
+            else
+                echo -e >&2 "${YELLOW}WARNING: Linked directory ${linked_dir} not found, skipping...${NC}"
+            fi
+        done
+    fi
+
+    if [[ ! -d "/games/${folder}" ]] && [[ ! -f "/games/${folder}.INI" ]]; then
+        echo -e >&2 "Directory /games/${folder} not found, skipping..."
+    fi
+    echo
+done
+
+if [[ "${#existing_folders[@]}" -eq 0 ]]; then
+    echo -e >&2 "${RED}You do not have any folders in /games!${NC} Please read the wiki https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server"
+    exit 1
+fi
+
+if [[ "${FIX_OWNERSHIP:-false}" == "true" ]]; then
+    echo >&2 "WARNING: FIX_OWNERSHIP is enabled! This will change the ownership and permissions of all folders in /games!"
+    echo "Changing ownership of /games to ps3netsrv:ps3netsrv ..."
+    chown ps3netsrv:ps3netsrv /games
+    echo "Changing permissions of /games to 755..."
+    chmod 755 /games
+    for folder in "${existing_folders[@]}"; do
+        echo "Changing ownership of files and directories in ${folder} to ps3netsrv:ps3netsrv..."
+        find "${folder}" -not -user "$(id -u ps3netsrv)" -exec chown -h ps3netsrv {} \;
+        find "${folder}" -not -group "$(id -g ps3netsrv)" -exec chgrp -h ps3netsrv {} \;
+
+        echo "Changing permissions of directories in ${folder} to 755..."
+        find "${folder}" -type d -exec chmod 755 {} \;
+
+        echo "Changing permissions of files in ${folder} to 644..."
+        find "${folder}" -type f -exec chmod 644 {} \;
+    done
+fi
+
+echo "
+-------------------------------------
+"
