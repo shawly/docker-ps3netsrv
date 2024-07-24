@@ -257,6 +257,20 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+      
+      - name: Set start and end comment
+        if: needs.build.outputs.publish == 'true'
+        id: comment
+        run: |
+          # Replace supported tags in README.md
+          # Define the start and end comments in the README.md file
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo 'start_comment=<!-- edge tags start -->' >> "$GITHUB_OUTPUT"
+            echo 'end_comment=<!-- edge tags end -->' >> "$GITHUB_OUTPUT"
+          else
+            echo 'start_comment=<!-- latest tags start -->' >> "$GITHUB_OUTPUT"
+            echo 'end_comment=<!-- latest tags end -->' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Prepare variables
         if: needs.build.outputs.publish == 'true'
@@ -264,21 +278,11 @@ jobs:
         run: |
           README_TAGS=$(jq -r '"- " + (.[] | [.tags[] | "`" + . + "`"] | join(", "))' <<< '${{ needs.build-matrix.outputs.releases }}')
 
-          # Replace supported tags in README.md
-          # Define the start and end comments in the README.md file
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            start_comment='<!-- edge tags start -->'
-            end_comment='<!-- edge tags end -->'
-          else
-            start_comment='<!-- latest tags start -->'
-            end_comment='<!-- latest tags end -->'
-          fi
-
           # Cleanout space between start and end comment
-          sed -i '/'${start_comment}'/,/'${end_comment}'/ { //!d }' README.md
+          sed -i '/${{ steps.comment.outputs.start_comment }}/,/${{ steps.comment.outputs.end_comment }}/ { //!d }' README.md
 
           # Replace the tags
-          sed -i "\\~${start_comment}~,\\~${end_comment}~ { \\|${start_comment}|r /dev/stdin
+          sed -i "\\~${{ steps.comment.outputs.start_comment }}~,\\~${{ steps.comment.outputs.end_comment }}~ { \\|${{ steps.comment.outputs.start_comment }}|r /dev/stdin
           }" README.md <<< "$README_TAGS"
 
       - name: Check for modified files
