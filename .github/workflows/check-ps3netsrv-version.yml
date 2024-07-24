@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.REPO_SCOPED_TOKEN }}
-          ref: master
+          ref: main
       - name: Fetch release version
         id: fetch-release
         run: |

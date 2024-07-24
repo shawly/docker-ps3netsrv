@@ -6,9 +6,9 @@ on:
       - '*.md'
       - '**/*.md'
 
-    # Publish `master` as Docker `edge` image.
+    # Publish `main` as Docker `edge` image.
     branches:
-      - master
+      - main
       - develop
       - 'release/*'
 
@@ -117,7 +117,7 @@ jobs:
           VERSION_MAJOR=$(echo "$VERSION_MINOR" | sed 's,\.[^.]*$,,')
 
           # Use Docker `edge` tag convention and pr-<number> for pull requests
-          [ "$VERSION_FULL" == "master" ] && VERSION_FULL=edge
+          [ "$VERSION_FULL" == "main" ] && VERSION_FULL=edge
           [ ${{ github.ref }} == refs/pull/* ] && VERSION_FULL=pr-${{ github.event.number }}
 
           # Build all tags
@@ -142,7 +142,7 @@ jobs:
           fi
 
           # Use Docker `edge` tag convention and pr-<number> for pull requests
-          [ "$VERSION_FULL" == "master" ] && VERSION_FULL=edge
+          [ "$VERSION_FULL" == "main" ] && VERSION_FULL=edge
           [ ${{ github.ref }} == refs/pull/* ] && VERSION_FULL=pr-${{ github.event.number }}
 
           # Build tags for README.md
@@ -153,7 +153,7 @@ jobs:
           echo "tags=${DOCKERIO_TAGS},${GHCRIO_TAGS}" >> $GITHUB_OUTPUT
           echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "readme_tags=${README_TAGS}" >> $GITHUB_OUTPUT
-          echo "release=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags') }}" >> $GITHUB_OUTPUT
+          echo "release=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags') }}" >> $GITHUB_OUTPUT
 
       - name: Cache Docker layers
         uses: actions/cache@v4
@@ -188,11 +188,11 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      - name: Checkout master
+      - name: Checkout main
         if: steps.prep.outputs.release == 'true'
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
 
       - name: Update README.md
         if: steps.prep.outputs.release == 'true'
