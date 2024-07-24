@@ -261,10 +261,8 @@ jobs:
       - name: Prepare variables
         if: needs.build.outputs.publish == 'true'
         id: prep
-        env:
-          PS3NETSRV_RELEASES: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
         run: |
-          README_TAGS=$(jq -r '"- " + (.[] | [.tags[] | "`" + . + "`"] | join(", "))' <<< "$PS3NETSRV_RELEASES")
+          README_TAGS=$(jq -r '"- " + (.[] | [.tags[] | "`" + . + "`"] | join(", "))' <<< '${{ needs.build-matrix.outputs.releases }}')
 
           # Replace supported tags in README.md
           # Define the start and end comments in the README.md file
