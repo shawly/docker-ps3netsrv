@@ -15,7 +15,7 @@ jobs:
         id: fetch-release
         run: |
           curl -sL -o release.json https://api.github.com/repos/aldostools/webMAN-MOD/releases/latest
-          export PS3NETSRV_VERSION=$(jq -r '.assets[] | select(.name | startswith("ps3netsrv")) | .name' release.json | \
+          export PS3NETSRV_VERSION=$(jq -r '[ .assets[] | select(.name | startswith("ps3netsrv")) | . ] | last | .name' release.json | \
                             sed -e 's/ps3netsrv_\(.*\)\.zip/\1/')
           export RELEASE_TAG=$(jq -r '.tag_name' release.json)
           if [ -n "$PS3NETSRV_VERSION" ]; then
