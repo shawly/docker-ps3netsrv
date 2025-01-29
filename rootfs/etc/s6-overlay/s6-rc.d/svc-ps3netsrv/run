@@ -1,0 +1,17 @@
+#!/command/with-contenv bash
+
+cd /games || exit 1
+
+UMASK=${UMASK:-022}
+umask "$UMASK"
+
+if ! [[ "${PS3NETSRV_BINARY}" =~ ^(mbedtls|polarssl)$ ]]; then
+    echo "Invalid binary specified \"${PS3NETSRV_BINARY}\", defaulting to mbedtls..."
+    PS3NETSRV_BINARY="mbedtls"
+fi
+
+echo "Using binary: ${PS3NETSRV_BINARY}"
+echo "Using port: ${PS3NETSRV_PORT}"
+echo "Using whitelist: ${PS3NETSRV_WHITELIST}"
+
+s6-setuidgid ps3netsrv "/usr/bin/ps3netsrv-${PS3NETSRV_BINARY}" /games "${PS3NETSRV_PORT}" ${PS3NETSRV_WHITELIST}

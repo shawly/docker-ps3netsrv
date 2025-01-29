@@ -1,0 +1,100 @@
+#!/command/with-contenv bash
+
+if [[ "${PS3NETSRV_SKIP_CHECKS:-}" == "true" ]]; then
+    echo "Skipping folder structure checks because PS3NETSRV_SKIP_CHECKS is true..."
+    exit 0
+fi
+
+echo '
+-------------------------------------
+Checking folder structure of /games directory
+-------------------------------------'
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+declare -a folders=("GAMES" "PS3ISO" "PSXISO" "PS2ISO" "PSPISO" "BDISO" "DVDISO" "ROMS" "GAMEI" "PKG" "MOVIES" "MUSIC" "PICTURE" "REDKEY")
+declare -a existing_folders=()
+
+function check_permissions() {
+    local fullpath="${1:-}"
+    if ! s6-setuidgid ps3netsrv test -r "${fullpath}"; then
+        echo -e "${RED}ERROR: ${fullpath} is not readable for user ps3netsrv! Check ownership and permissions!${NC}"
+        echo -e "${fullpath} is owned by $(stat -c '%U' "${fullpath}") and has permissions $(stat -c '%A' "${fullpath}")"
+        ls -l "${fullpath}"
+    else
+        echo -e "${GREEN}OK: ${fullpath} is readable${NC}"
+        if [[ -z "$(ls "${fullpath}")" ]]; then
+            echo -e "${YELLOW}WARNING: ${fullpath} is empty, make sure to put your games here!${NC}"
+        else
+            unreadable_files="$(find "${fullpath}" -not -user "$(id -u ps3netsrv)" -not -exec s6-setuidgid ps3netsrv test -r {} \; -print)"
+            unreadable_files+="\n$(find "${fullpath}" -not -group "$(id -g ps3netsrv)" -not -exec s6-setuidgid ps3netsrv test -r {} \; -print)"
+            # remove duplicates from unreadable_files
+            unreadable_files="$(echo -e "${unreadable_files}" | sort | uniq)"
+            if [[ -n "${unreadable_files}" ]]; then
+                echo -e "${RED}ERROR: Found files or directories in ${fullpath} that ps3netsrv does not have permission to read:${NC}"
+                # loop over files line by line and ls -la the file:
+                while IFS= read -r file; do
+                    ls -l "${file}"
+                done <<<"${unreadable_files}"
+            fi
+        fi
+        existing_folders+=("${fullpath}")
+    fi
+}
+
+for folder in "${folders[@]}"; do
+    echo "--- Checking ${folder} ---"
+    if [[ -d "/games/${folder}" ]]; then
+        echo "Directory /games/${folder}/ found, checking permissions..."
+        check_permissions "/games/${folder}"
+    fi
+
+    if [[ -f "/games/${folder}.INI" ]]; then
+        echo -e "File /games/${folder}.INI found, checking if linked directories inside exist..."
+        mapfile -t ini_folders <"/games/${folder}.INI"
+        for linked_dir in "${ini_folders[@]}"; do
+            echo "--- Checking ${folder}.INI -> ${linked_dir} ---"
+            if [[ -d "${linked_dir}" ]]; then
+                echo "Linked directory ${linked_dir} found in ${folder}.INI, checking permissions..."
+                check_permissions "${linked_dir}"
+            else
+                echo -e "${RED}ERROR: Linked directory ${linked_dir} not found, please check your ${folder}.INI...${NC}"
+            fi
+        done
+    fi
+
+    if [[ ! -d "/games/${folder}" ]] && [[ ! -f "/games/${folder}.INI" ]]; then
+        echo -e "Directory /games/${folder}/ and /games/${folder}.INI do not exist, skipping checks..."
+    fi
+done
+
+if [[ "${#existing_folders[@]}" -eq 0 ]]; then
+    echo -e "${RED}You do not have any readable folders in /games!${NC}\nPlease read the wiki https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server"
+    exit 0
+fi
+
+if [[ "${PS3NETSRV_FIX_PERMISSIONS:-false}" == "true" ]]; then
+    echo >&2 "WARNING: PS3NETSRV_FIX_PERMISSIONS is enabled! This will change the ownership and permissions of all folders in /games!"
+    echo "Changing ownership of /games to ps3netsrv:ps3netsrv ..."
+    chown ps3netsrv:ps3netsrv /games
+    echo "Changing permissions of /games to ${PS3NETSRV_FOLDER_PERMISSIONS:-755}..."
+    chmod "${PS3NETSRV_FOLDER_PERMISSIONS:-755}" /games
+    for folder in "${existing_folders[@]}"; do
+        echo "Changing ownership of files and directories in ${folder} to ps3netsrv:ps3netsrv..."
+        find "${folder}" -not -user "$(id -u ps3netsrv)" -exec chown -h ps3netsrv {} \;
+        find "${folder}" -not -group "$(id -g ps3netsrv)" -exec chgrp -h ps3netsrv {} \;
+
+        echo "Changing permissions of directories in ${folder} to ${PS3NETSRV_FOLDER_PERMISSIONS:-755}..."
+        find "${folder}" -type d -exec chmod "${PS3NETSRV_FOLDER_PERMISSIONS:-755}" {} \;
+
+        echo "Changing permissions of files in ${folder} to ${PS3NETSRV_FILE_PERMISSIONS:-644}..."
+        find "${folder}" -type f -exec chmod "${PS3NETSRV_FILE_PERMISSIONS:-644}" {} \;
+    done
+fi
+
+echo "
+-------------------------------------
+"
