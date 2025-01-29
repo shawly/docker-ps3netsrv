@@ -1,0 +1,170 @@
+#
+# ps3netsrv Dockerfile
+#
+# https://github.com/shawly/docker-ps3netsrv
+#
+
+# Set alpine version
+ARG ALPINE_VERSION=3.21
+
+# Set vars for s6 overlay
+ARG S6_OVERLAY_RELEASE=v3.2.0.2
+ARG S6_OVERLAY_ARCH=x86_64
+ARG S6_OVERLAY_DOWNLOAD_URL=https://github.com/just-containers/s6-overlay/releases/download
+
+# Set PS3NETSRV vars
+ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
+ARG PS3NETSRV_SRC_DIR=_Projects_/ps3netsrv
+ARG PS3NETSRV_SRC_REF=master
+ARG BUILD_FROM_GIT=true
+
+ARG PS3NETSRV_VERSION
+ARG PS3NETSRV_GITHUB_API_URL=https://api.github.com/repos/aldostools/webMAN-MOD/releases
+
+# Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
+FROM alpine:${ALPINE_VERSION} AS alpine-amd64
+
+ARG S6_OVERLAY_ARCH=x86_64
+
+FROM alpine:${ALPINE_VERSION} AS alpine-armv6
+
+ARG S6_OVERLAY_ARCH=armhf
+
+FROM alpine:${ALPINE_VERSION} AS alpine-armv7
+
+ARG S6_OVERLAY_ARCH=arm
+
+FROM alpine:${ALPINE_VERSION} AS alpine-arm64
+
+ARG S6_OVERLAY_ARCH=aarch64
+
+# Build ps3netsrv:master
+FROM alpine:${ALPINE_VERSION} AS builder
+
+ARG PS3NETSRV_REPO
+ARG PS3NETSRV_SRC_DIR
+ARG PS3NETSRV_SRC_REF
+ARG PS3NETSRV_GITHUB_API_URL
+ARG PS3NETSRV_VERSION
+ARG BUILD_FROM_GIT
+
+# Change working dir
+WORKDIR /tmp
+
+# Install deps and build binary
+RUN \
+  set -e && \
+  echo "Installing build dependencies..." && \
+  apk add --update --no-cache \
+    curl \
+    jq \
+    git \
+    build-base \
+    meson \
+    mbedtls-dev \
+    musl \
+    musl-dev \
+    musl-dbg \
+    musl-utils \
+    tar \
+    unzip
+
+# Set CFLAGS to define _LARGEFILE64_SOURCE
+ARG CFLAGS="-D_LARGEFILE64_SOURCE"
+ARG CPPFLAGS="-D_LARGEFILE64_SOURCE"
+
+RUN \
+  [ "${BUILD_FROM_GIT:-}" != "true" ] || (echo "Building ps3netsrv from git repo (ref: ${PS3NETSRV_SRC_REF:?})..." && \
+    mkdir -p /tmp/repo/ && \
+    cd /tmp/repo/ && \
+    git init && \
+    git remote add origin "${PS3NETSRV_REPO:?}" && \
+    git fetch --depth 1 origin "${PS3NETSRV_SRC_REF:?}" && \
+    git checkout FETCH_HEAD && \
+    cd /tmp/repo/${PS3NETSRV_SRC_DIR:?} && \
+    meson build --buildtype=release && \
+    ninja -C build/ && \
+    mkdir -p /tmp/ps3netsrv-bin && \
+    cp -v /tmp/repo/${PS3NETSRV_SRC_DIR:?}/build/ps3netsrv /tmp/ps3netsrv-bin/ps3netsrv-mbedtls && \
+    make -f Makefile.linux && \
+    cp -v ./ps3netsrv /tmp/ps3netsrv-bin/ps3netsrv-polarssl)
+
+RUN \
+  [ "${BUILD_FROM_GIT:-}" == "true" ] || (echo "Building ps3netsrv from release (ps3netsrv_${PS3NETSRV_VERSION:?}.zip)..." && \
+    cd /tmp && \
+    echo "Getting releases from ${PS3NETSRV_GITHUB_API_URL:?}" && \
+      curl -sL -o releases.json "${PS3NETSRV_GITHUB_API_URL:?}" && \
+      PS3NETSRV_URL="$(jq -r --arg version "${PS3NETSRV_VERSION:?}" '[.[].assets[] | select(.name | startswith("ps3netsrv_" + $version)) | .browser_download_url] | first' releases.json)" && \
+    echo "Downloading release from ${PS3NETSRV_URL:?}" && \
+      curl -sL --output /tmp/ps3netsrv.zip "${PS3NETSRV_URL:?}" && \
+    echo "Extracting release..." && \
+      unzip /tmp/ps3netsrv.zip -d /tmp && \
+      find "/tmp" -type d -maxdepth 1 -iname "*ps3netsrv_*" -exec mv -f {} "/tmp/ps3netsrv" \; && \
+      cd /tmp/ps3netsrv/ps3netsrv && \
+    echo "Building release..." && \
+      meson build --buildtype=release && \
+      ninja -C build/ && \
+      mkdir -p /tmp/ps3netsrv-bin && \
+      cp -v build/ps3netsrv /tmp/ps3netsrv-bin/ps3netsrv-mbedtls && \
+    echo "Building alternative with POLARSSL instead of mbedTLS..." && \
+      make -f Makefile.linux && \
+      mkdir -p /tmp/ps3netsrv-bin && \
+      cp -v ./ps3netsrv /tmp/ps3netsrv-bin/ps3netsrv-polarssl)
+
+# Runtime container
+FROM alpine-${TARGETARCH:-amd64}${TARGETVARIANT}
+
+ARG S6_OVERLAY_RELEASE
+ARG S6_OVERLAY_ARCH
+ARG S6_OVERLAY_DOWNLOAD_URL
+
+# Add s6-overlay files
+ADD ${S6_OVERLAY_DOWNLOAD_URL}/${S6_OVERLAY_RELEASE}/s6-overlay-noarch.tar.xz /tmp
+ADD ${S6_OVERLAY_DOWNLOAD_URL}/${S6_OVERLAY_RELEASE}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz /tmp
+
+# Copy binary from build container
+COPY --from=builder /tmp/ps3netsrv-bin/ps3netsrv* /usr/bin/
+
+# Install runtime deps and add users
+RUN \
+  set -e && \
+  echo "Installing runtime dependencies..." && \
+  apk add --no-cache \
+    bash \
+    coreutils \
+    shadow \
+    tzdata \
+    libstdc++ \
+    musl \
+    musl-utils \
+    mbedtls \
+    xz && \
+  echo "Extracting s6 overlay..." && \
+    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
+  echo "Creating ps3netsrv user..." && \
+    useradd -u 1000 -U -M -s /bin/false ps3netsrv && \
+    usermod -G users ps3netsrv && \
+    mkdir -p /var/log/ps3netsrv && \
+    chown -R nobody:nogroup /var/log/ps3netsrv && \
+  echo "Removing not needed packages" && \
+    apk del --purge \
+      xz && \
+  echo "Cleaning up temp directory..." && \
+    rm -rf /tmp/*
+
+# Add files
+COPY rootfs/ /
+
+ENV PS3NETSRV_BINARY=mbedtls \
+    PS3NETSRV_PORT=38008 \
+    PS3NETSRV_WHITELIST=
+
+# Define mountable directories
+VOLUME ["/games"]
+
+# Expose ports
+EXPOSE 38008
+
+# Start s6
+ENTRYPOINT ["/init"]

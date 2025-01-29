@@ -86,7 +86,7 @@ and parameters should be adjusted to your need.
 Launch the ps3netsrv docker container with the following command:
 
 ```
-docker run -d \
+docker run -d -t \
     --name=ps3netsrv \
     -p 38008:38008 \
     -v $HOME/ps3games:/games:rw \
@@ -100,7 +100,7 @@ Where:
 ## Usage
 
 ```
-docker run [-d] \
+docker run [-d] -t \
     --name=ps3netsrv \
     [-e <VARIABLE_NAME>=<VALUE>]... \
     [-v <HOST_DIR>:<CONTAINER_DIR>[:PERMISSIONS]]... \
@@ -123,8 +123,8 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 
 | Variable              | Description                                                                                                                         | Default   |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| `USER_ID`             | ID of the user the application runs as. See [User/Group IDs](#usergroup-ids) to better understand when this should be set.          | `1000`    |
-| `GROUP_ID`            | ID of the group the application runs as. See [User/Group IDs](#usergroup-ids) to better understand when this should be set.         | `1000`    |
+| `PUID`             | ID of the user the application runs as. See [User/Group IDs](#usergroup-ids) to better understand when this should be set.          | `1000`    |
+| `PGID`            | ID of the group the application runs as. See [User/Group IDs](#usergroup-ids) to better understand when this should be set.         | `1000`    |
 | `PS3NETSRV_PORT`      | Port used by ps3netsrv. You only need to change this when using network_mode host, otherwise you can just remap ports using Docker! | `38008`   |
 | `PS3NETSRV_WHITELIST` | Whitelist IPs e.g. `192.168.1.*` or `192.168.1.10-192.168.1.200`, this probably only works with network_mode host!                  | ``        |
 | `TZ`                  | [TimeZone] of the container. Timezone can also be set by mapping `/etc/localtime` between the host and the container.               | `Etc/UTC` |
@@ -187,10 +187,12 @@ version: "3"
 services:
   ps3netsrv:
     image: shawly/ps3netsrv:latest
+    restart: unless-stopped
+    tty: true
     environment:
       TZ: Europe/Berlin
-      USER_ID: 38008  # change this to the uid of the user that owns your games folder
-      GROUP_ID: 38008  # change this to the gid of the user that owns your games folder
+      PUID: 38008  # change this to the uid of the user that owns your games folder
+      PGID: 38008  # change this to the gid of the user that owns your games folder
     ports:
       - "38008:38008"
     volumes:
@@ -232,7 +234,7 @@ and folders on the shared volume.
 To avoid any problem, you can specify the user the application should run as.
 
 This is done by passing the user ID and group ID to the container via the
-`USER_ID` and `GROUP_ID` environment variables.
+`PUID` and `PGID` environment variables.
 
 To find the right IDs to use, issue the following command on the host, with the
 user owning the data volume on the host:
@@ -274,7 +276,7 @@ docker run -d \
 ps3netsrv does not have root permissions within the container, it runs as user `ps3netsrv` which by default has the UID 1000 and the GID 1000.  
 There are two solutions for this issue, `bob` could change the ownership of his `ps3games` folder to 1000:1000, which is a bad idea because he will lose access if he does not have the UID 1000.
 
-The better solution is to override the `ps3netsrv` user's UID and GID, this can be done with the environment variables `USER_ID` and `GROUP_ID`.  
+The better solution is to override the `ps3netsrv` user's UID and GID, this can be done with the environment variables `PUID` and `PGID`.  
 `bob` has the UID 10002 and his `bob` group has the GID 10003 so we need to change the environment variables, like this:
 
 ```
@@ -282,8 +284,8 @@ docker run -d \
     --name=ps3netsrv \
     -p 38008:38008 \
     -v $HOME/ps3games:/games:rw \
-    -e USER_ID=10002 \
-    -e GROUP_ID=10003 \
+    -e PUID=10002 \
+    -e PGID=10003 \
     shawly/ps3netsrv
 ```
 
