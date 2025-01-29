@@ -1,17 +1,23 @@
 #!/command/with-contenv bash
 
-USER_ID=${USER_ID:-1000}
-GROUP_ID=${GROUP_ID:-1000}
+if [[ -n "${USER_ID}" ]] && [[ -n "${GROUP_ID}" ]]; then
+    USER_ID="${USER_ID}"
+    GROUP_ID="${GROUP_ID}"
+    echo "USER_ID and GROUP_ID are deprecated, please use PUID and PGID instead!"
+elif [[ -n "${PUID}" ]] && [[ -n "${PGID}" ]]; then
+    USER_ID="${PUID}"
+    GROUP_ID="${PGID}"
+fi
 
-groupmod -o -g "$GROUP_ID" ps3netsrv
-usermod -o -u "$USER_ID" ps3netsrv
+groupmod -o -g "${GROUP_ID:-1000}" ps3netsrv
+usermod -o -u "${USER_ID:-1000}" ps3netsrv
 
 echo '
 -------------------------------------
 GID/UID
 -------------------------------------'
 echo "
-User uid:    $(id -u ps3netsrv)
-User gid:    $(id -g ps3netsrv)
+ps3netsrv uid:    $(id -u ps3netsrv)
+ps3netsrv gid:    $(id -g ps3netsrv)
 -------------------------------------
 "

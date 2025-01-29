@@ -1,27 +1,98 @@
 name: Docker build and publish
 
 on:
+  schedule:
+    - cron: "0 1 * * *"
   push:
     paths-ignore:
       - "*.md"
       - "**/*.md"
-
-    # Publish `main` as Docker `edge` image.
     branches:
       - main
       - develop
-
-  # Run tests for any PRs.
   pull_request:
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: ps3netsrv
   IMAGE_TITLE: ps3netsrv
   IMAGE_DESCRIPTION: Docker container for ps3netsrv
   IMAGE_LICENSE: gpl-3.0-or-later
+  ALPINE_VERSION: 3.21
+  DEBIAN_VERSION: bookworm-slim
+  DEFAULT_BASE: alpine
 
 jobs:
+  update-ps3netsrv-history:
+    runs-on: ubuntu-latest
+    outputs:
+      updated_history: ${{ steps.git-push.outputs.updated_history }}
+    steps:
+      - name: Determine branch to update
+        id: update-branch
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "Updating branch: ${{ github.event.pull_request.head.ref }}"
+            echo "branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "Updating branch: ${{ github.event.repository.default_branch }}"
+            echo "branch=${{ github.event.repository.default_branch }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Updating branch: ${{ github.event.ref }}"
+            echo "branch=${{ github.event.ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event: ${{ github.event_name }}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          ref: ${{ steps.update-branch.outputs.branch }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          ref: master
+          path: build/webman-mod
+          repository: aldostools/webMAN-MOD
+          fetch-depth: 0
+
+      - name: Fetch release version
+        id: fetch-release
+        run: |
+          echo "Gathering ps3netsrv versions per commit..."
+          git -C "$GITHUB_WORKSPACE/build/webman-mod" log --pretty=format:%H -- _Projects_/ps3netsrv ':(exclude,icase)_Projects_/ps3netsrv/bins/' ':(exclude,icase)_Projects_/ps3netsrv/*.md' ':(exclude,icase)_Projects_/ps3netsrv/*.txt' | \
+            xargs -I {} bash -c '
+                version=$(git -C "$GITHUB_WORKSPACE/build/webman-mod" show "{}:_Projects_/ps3netsrv/src/main.cpp" 2>/dev/null | sed -nr "s/.+ps3netsrv build ([0-9a-zA-Z]+).*/\1/p")
+                [[ -z "$version" ]] && exit
+                commit={}
+
+                echo "{ \"version\": \"$version\", \"commits\": \"$commit\"}"' | \
+            jq -s | \
+            tee /tmp/ps3netsrv_history_raw.json
+
+          echo "Merging ps3netsrv versions per commit..."
+          jq '[reduce .[] as $d (null; .[$d.version] += [$d.commits]) | to_entries | sort_by(.key) | reverse | .[] | { version: .key, commits: .value}]' /tmp/ps3netsrv_history_raw.json | tee .github/ps3netsrv-history.json
+          rm -rf "$GITHUB_WORKSPACE/build/webman-mod"
+
+      - name: Check for modified files
+        id: git-check
+        run: echo "modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")" >> $GITHUB_OUTPUT
+
+      - name: Commit latest release version
+        if: steps.git-check.outputs.modified == 'true'
+        id: git-push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit -am "chore(history): update ps3netsrv history"
+          git push
+          echo "updated_history=true" >> $GITHUB_OUTPUT
+
   build-matrix:
+    needs: update-ps3netsrv-history
+    if: needs.update-ps3netsrv-history.outputs.updated_history != 'true'
     runs-on: ubuntu-latest
     outputs:
       releases: ${{ steps.set-matrix.outputs.releases }}
@@ -33,8 +104,8 @@ jobs:
         id: set-matrix
         run: |
           version_commit_map=$(jq -cr --arg gitref ${{ github.ref }} -f .github/ps3netsrv-filter.jq .github/ps3netsrv-history.json)
-          echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
           echo "version_commit_map=${version_commit_map}"
+          echo "releases=${version_commit_map}" >> "$GITHUB_OUTPUT"
 
   # Run tests build
   test-build:
@@ -42,6 +113,7 @@ jobs:
     strategy:
       matrix:
         release: ${{ fromJSON(needs.build-matrix.outputs.releases) }}
+        baseimage: [alpine, slim]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -52,9 +124,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.test-buildx-cache
-          key: ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
+          key: ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ matrix.baseimage }}-${{ github.ref }}
           restore-keys: |
-            ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ github.ref }}
+            ${{ runner.os }}-test-buildx-${{ matrix.release.version }}-${{ matrix.baseimage }}-${{ github.ref }}
             ${{ runner.os }}-test-buildx-${{ github.ref }}
 
       - name: Checkout
@@ -75,8 +147,13 @@ jobs:
 
           echo "Would create tags:"
           for TAG in "${TAGS[@]}"; do
-            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
-            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            # If default base we also tag the image without the base name
+            if [[ ${{ matrix.baseimage }} == $DEFAULT_BASE ]]; then
+              DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+              GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+            fi
           done
           echo "DOCKERIO_TAGS=${DOCKERIO_TAGS:-}"
           echo "GHCRIO_TAGS=${GHCRIO_TAGS:-}"
@@ -85,7 +162,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx_test.outputs.name }}
-          context: .
+          file: ${{ matrix.baseimage }}.Dockerfile
           platforms: linux/amd64
           push: false
           load: true
@@ -93,7 +170,7 @@ jobs:
             BUILD_FROM_GIT=true
             PS3NETSRV_VERSION=${{ matrix.release.version }}
             PS3NETSRV_SRC_REF=${{ matrix.release.ref }}
-          tags: ps3netsrv:test-build-${{ matrix.release.version }}
+          tags: ps3netsrv:test-build-${{ matrix.release.version }}-${{ matrix.baseimage }}
           cache-from: type=local,src=/tmp/.test-buildx-cache
           cache-to: type=local,dest=/tmp/.test-buildx-cache-new
 
@@ -107,8 +184,10 @@ jobs:
 
       - name: Create ps3netsrv container...
         run: |
+          echo "Changing permissions for tests/games..."
+          sudo bash tests/setup-test-structure.sh
           echo "Starting ps3netsrv container..."
-          docker run -t -d --name ps3netsrv-test ps3netsrv:test-build-${{ matrix.release.version }}
+          docker run -t -d --name ps3netsrv-test -e PS3NETSRV_FIX_PERMISSIONS=true -v ./tests/games:/games ps3netsrv:test-build-${{ matrix.release.version }}-${{ matrix.baseimage }}
           echo "Trying 30 seconds to check for startup..."
           count=0
           exitcode=1
@@ -119,7 +198,7 @@ jobs:
               exitcode=0
               break
             else
-              echo "Waiting for ps3netsrv to start..."
+              echo "Waiting for ps3netsrv to start... $(docker logs ps3netsrv-test)"
               exitcode=1
             fi
             sleep 1
@@ -183,9 +262,15 @@ jobs:
           IFS=, read -r -a TAGS <<< "$PS3NETSRV_TAGS"
 
           for TAG in "${TAGS[@]}"; do
-            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
-            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
-            README_TAGS="${README_TAGS}, \`${TAG}\`"
+            DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}-${{ matrix.baseimage }}"
+            README_TAGS="${README_TAGS}, \`${TAG}-${{ matrix.baseimage }}\`"
+            # If default base we also tag the image without the base name
+            if [[ ${{ matrix.baseimage }} == $DEFAULT_BASE ]]; then
+              DOCKERIO_TAGS="${DOCKERIO_TAGS},${DOCKERIO_IMAGE}:${TAG}"
+              GHCRIO_TAGS="${GHCRIO_TAGS},${GHCRIO_IMAGE}:${TAG}"
+              README_TAGS="${README_TAGS}, \`${TAG}\`"
+            fi
           done
 
           echo "version=${PS3NETSRV_VERSION}" >> $GITHUB_OUTPUT
@@ -208,7 +293,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: .
+          file: ${{ matrix.baseimage }}.Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
           push: ${{ steps.prep.outputs.publish == 'true' }}
           tags: ${{ steps.prep.outputs.tags }}
@@ -257,7 +342,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-      
+
       - name: Set start and end comment
         if: needs.build.outputs.publish == 'true'
         id: comment
@@ -288,7 +373,7 @@ jobs:
       - name: Check for modified files
         if: needs.build.outputs.publish == 'true'
         id: git-check
-        run: echo modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true") >> $GITHUB_OUTPUT
+        run: echo "modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")" >> $GITHUB_OUTPUT
 
       - name: Commit updated README.md
         if: steps.git-check.outputs.modified == 'true'
