@@ -18,7 +18,7 @@ ARG PS3NETSRV_REF=master
 ARG BUILD_FROM_GIT=false
 
 ARG PS3NETSRV_RELEASE=1.47.48
-ARG PS3NETSRV_VERSION=20250126
+ARG PS3NETSRV_VERSION=20250216
 ARG PS3NETSRV_URL=https://github.com/aldostools/webMAN-MOD/releases/download/${PS3NETSRV_RELEASE}/ps3netsrv_${PS3NETSRV_VERSION}.zip
 
 # Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
