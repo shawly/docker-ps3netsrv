@@ -5,7 +5,7 @@
 #
 
 # Set alpine version
-ARG ALPINE_VERSION=3.18
+ARG ALPINE_VERSION=3.21
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION=v2.2.0.3
@@ -93,6 +93,9 @@ RUN \
   [ "${BUILD_FROM_GIT:-}" != "true" ] || (echo "Building ps3netsrv from git repo (ref: ${PS3NETSRV_REF})..." && \
     git clone --depth 1 "${PS3NETSRV_REPO}" --branch "${PS3NETSRV_REF}" repo && \
     cd /tmp/repo/${PS3NETSRV_DIR} && \
+    # Patch off64_t to off_t for Alpine 3.21+ \
+    sed -i 's/\boff64_t\b/off_t/g' include/*.* && \
+    sed -i 's/\boff64_t\b/off_t/g' src/*.* && \
     meson build --buildtype=release && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
@@ -105,6 +108,9 @@ RUN \
     makefile_path=$(find "/tmp" -type f -maxdepth 3 -iname "Makefile") && \
     src_dir=$(dirname "$makefile_path") && \
     cd "${src_dir}" && \
+    # Patch off64_t to off_t for Alpine 3.21+ \
+    sed -i 's/\boff64_t\b/off_t/g' include/*.* && \
+    sed -i 's/\boff64_t\b/off_t/g' src/*.* && \
     meson build --buildtype=release && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
