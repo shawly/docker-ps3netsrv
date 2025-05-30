@@ -102,8 +102,9 @@ RUN \
   [ "${BUILD_FROM_GIT:-}" == "true" ] || (echo "Building ps3netsrv from release (ps3netsrv_${PS3NETSRV_VERSION}.zip)..." && \
     curl -sL --output /tmp/ps3netsrv.zip "${PS3NETSRV_URL}" && \
     unzip /tmp/ps3netsrv.zip -d /tmp && \
-    find "/tmp" -type d -maxdepth 1 -iname "*ps3netsrv_*" -exec mv -f {} "/tmp/ps3netsrv" \; && \
-    cd /tmp/ps3netsrv/ps3netsrv && \
+    makefile_path=$(find "/tmp" -type f -maxdepth 3 -iname "Makefile") && \
+    src_dir=$(dirname "$makefile_path") && \
+    cd "${src_dir}" && \
     meson build --buildtype=release && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
