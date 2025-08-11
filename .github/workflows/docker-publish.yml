@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         id: buildx_test
@@ -79,7 +79,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.ref }}
 
@@ -190,7 +190,7 @@ jobs:
 
       - name: Checkout main
         if: steps.prep.outputs.release == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
 
