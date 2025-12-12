@@ -40,7 +40,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/.test-buildx-cache
           key: ${{ runner.os }}-test-buildx-${{ env.APP_VERSION }}
@@ -156,7 +156,7 @@ jobs:
           echo "release=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags') }}" >> $GITHUB_OUTPUT
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ env.APP_VERSION }}
