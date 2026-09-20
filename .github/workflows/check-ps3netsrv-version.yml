@@ -14,30 +14,27 @@ jobs:
       - name: Fetch release version
         id: fetch-release
         run: |
-          curl -sL -o release.json https://api.github.com/repos/aldostools/webMAN-MOD/releases/latest
-          export PS3NETSRV_VERSION=$(jq -r '[ .assets[] | select(.name | startswith("ps3netsrv")) | . ] | last | .name' release.json | \
-                            sed -e 's/ps3netsrv_\(.*\)\.zip/\1/')
-          export RELEASE_TAG=$(jq -r '.tag_name' release.json)
+          PS3NETSRV_VERSION=$(curl -sL https://api.github.com/repos/aldostools/ps3netsrv/releases/latest | \
+                              jq -r '.tag_name // empty')
           if [ -n "$PS3NETSRV_VERSION" ]; then
             echo "Found ps3netsrv release $PS3NETSRV_VERSION"
 
-            # replacing APP_VERSION and RELEASE_TAG in .github/workflows/docker-publish.yml
-            sed -ri "s/^(\s*)(APP_VERSION\s*:\s*.*\s*$)/\1APP_VERSION: \"$PS3NETSRV_VERSION\"/" .github/workflows/docker-publish.yml
-            sed -ri "s/^(\s*)(RELEASE_TAG\s*:\s*.*\s*$)/\1RELEASE_TAG: \"$RELEASE_TAG\"/" .github/workflows/docker-publish.yml
+            # replacing APP_VERSION in .github/workflows/docker-publish.yml
+            sed -ri "s/^(\s*)APP_VERSION\s*:\s*.*$/\1APP_VERSION: \"$PS3NETSRV_VERSION\"/" .github/workflows/docker-publish.yml
             echo "Updated APP_VERSION with $PS3NETSRV_VERSION in .github/workflows/docker-publish.yml"
 
-            # replacing PS3NETSRV_RELEASE and PS3NETSRV_VERSION in Dockerfile
-            sed -ri "s/(PS3NETSRV_VERSION=.+)/PS3NETSRV_VERSION=$PS3NETSRV_VERSION/" Dockerfile
-            sed -ri "s/(PS3NETSRV_RELEASE=.+)/PS3NETSRV_RELEASE=$RELEASE_TAG/" Dockerfile
-            echo "Updated APP_VERSION with $PS3NETSRV_VERSION in Dockerfile"
+            # replacing PS3NETSRV_VERSION in Dockerfile
+            sed -ri "s/^(ARG PS3NETSRV_VERSION=).+$/\1$PS3NETSRV_VERSION/" Dockerfile
+            echo "Updated PS3NETSRV_VERSION with $PS3NETSRV_VERSION in Dockerfile"
 
-            echo ::set-output name=version::$PS3NETSRV_VERSION
-            echo ::set-output name=tag::$RELEASE_TAG
+            echo "version=$PS3NETSRV_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Could not determine the latest ps3netsrv release..."
+            exit 1
           fi
-          rm -f release.json
       - name: Check for modified files
         id: git-check
-        run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
+        run: echo "modified=$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")" >> $GITHUB_OUTPUT
       - name: Commit latest release version
         if: steps.git-check.outputs.modified == 'true'
         run: |

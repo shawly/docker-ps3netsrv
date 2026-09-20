@@ -6,9 +6,9 @@ This is a Docker container for ps3netsrv (or ps3netsvr).
 
 ---
 
-[![ps3netsrv logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsrv/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/webMAN-MOD)[![ps3netsrv](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsrv)](https://github.com/aldostools/webMAN-MOD)
+[![ps3netsrv logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsrv/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/ps3netsrv)[![ps3netsrv](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsrv)](https://github.com/aldostools/ps3netsrv)
 
-ps3netsrv for WebMAN-MOD by [aldostools](https://github.com/aldostools). Binaries built from the latest sources.
+ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binaries built from the latest sources of [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv).
 
 ---
 
@@ -44,7 +44,7 @@ This image comes in two different variants.
 ### `shawly/ps3netsrv:<version>`
 
 This image represents a stable or considered "working" build of ps3netsrv and should be preferred.  
-It is built from the latest released version, found in the webMAN-MOD releases.
+It is built from the latest released version, found in the [ps3netsrv releases](https://github.com/aldostools/ps3netsrv/releases).
 
 If you want a specific ps3netsrv version, you can use the tag of the version e.g. `20220813`.
 
@@ -52,7 +52,7 @@ If you want a specific ps3netsrv version, you can use the tag of the version e.g
 
 This image represents a development state of this repo. It contains the latest features but is not considered stable, it can contain bugs and breaking changes.  
 If you are not sure what to choose, use the `latest` image or a version like `v1` or `20220813`.  
-This image will be built from the latest release found in the webMAN-MOD releases as well, but it will be bleeding edge, meaning it will be updated as soon as a new release is found.
+This image will be built from the latest release found in the [ps3netsrv releases](https://github.com/aldostools/ps3netsrv/releases) as well, but it will be bleeding edge, meaning it will be updated as soon as a new release is found.
 
 ## Supported Architectures
 
@@ -243,7 +243,7 @@ be given the container.
 
 ## Troubleshooting
 
-First things first, if you have any kind of issue please try to use [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv and try to reproduce the issue. If you have the same issue with the standalone version, it's better to create an issue on the [webMAN-MOD repo](https://github.com/aldostools/webMAN-MOD/issues).
+First things first, if you have any kind of issue please try to use [the standalone version](https://github.com/aldostools/ps3netsrv/releases) of ps3netsrv and try to reproduce the issue. If you have the same issue with the standalone version, it's better to create an issue on the [ps3netsrv repo](https://github.com/aldostools/ps3netsrv/issues).
 
 ### webMAN-MOD can't see or read games from ps3netsrv
 
@@ -306,12 +306,12 @@ If it still doesn't work, you can create a help request with the secret code "SS
 ### The container won't start or webMAN-MOD can't connect to the container
 
 On some systems like Synology NAS systems the default port of ps3netsrv `38008` is in use already, so you simply need to change the host port to something else on the container and change the port within webMAN-MOD's webinterface to the same port.
-If the port is not the issue, it might be the latest build of ps3netsrv, try out some older tags of my Docker image as well as [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv.
+If the port is not the issue, it might be the latest build of ps3netsrv, try out some older tags of my Docker image as well as [the standalone version](https://github.com/aldostools/ps3netsrv/releases) of ps3netsrv.
 
 ### webMAN-MOD has access to ps3netsrv but when mounting games they show as corrupted
 
 This is an issue related to the latest UnRAID version, the splitting mechanism of shfs seems to be incompatible with ps3netsrv, take a look at [this issue](https://github.com/aldostools/webMAN-MOD/issues/333), at the bottom you can find some workarounds.
-If you do not have UnRAID but some other filesystem please test [the standalone version](https://github.com/aldostools/webMAN-MOD/tree/master/_Projects_/ps3netsrv/bins) of ps3netsrv before creating an issue here.
+If you do not have UnRAID but some other filesystem please test [the standalone version](https://github.com/aldostools/ps3netsrv/releases) of ps3netsrv before creating an issue here.
 If the issue also happens with the ps3netsrv standalone on a standard ext4 filesystem, your games are likely to be corrupted or you don't own the files **within** your games folders, check permissions and/or make new backups.
 
 ## Support or Contact

@@ -5,66 +5,62 @@
 #
 
 # Set alpine version
-ARG ALPINE_VERSION=3.21
+ARG ALPINE_VERSION=3.23
 
 # Set vars for s6 overlay
 ARG S6_OVERLAY_VERSION=v2.2.0.3
 ARG S6_OVERLAY_BASE_URL=https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}
 
 # Set PS3NETSRV vars
-ARG PS3NETSRV_REPO=https://github.com/aldostools/webMAN-MOD.git
-ARG PS3NETSRV_DIR=_Projects_/ps3netsrv
+ARG PS3NETSRV_REPO=https://github.com/aldostools/ps3netsrv.git
 ARG PS3NETSRV_REF=master
 ARG BUILD_FROM_GIT=false
 
-ARG PS3NETSRV_RELEASE=1.47.48
-ARG PS3NETSRV_VERSION=20260913_windows
-ARG PS3NETSRV_URL=https://github.com/aldostools/webMAN-MOD/releases/download/${PS3NETSRV_RELEASE}/ps3netsrv_${PS3NETSRV_VERSION}.zip
+ARG PS3NETSRV_VERSION=20260913
+ARG PS3NETSRV_URL=https://github.com/aldostools/ps3netsrv/archive/refs/tags/${PS3NETSRV_VERSION}.tar.gz
 
 # Set base images with s6 overlay download variable (necessary for multi-arch building via GitHub workflows)
-FROM alpine:${ALPINE_VERSION} as alpine-amd64
+FROM alpine:${ALPINE_VERSION} AS alpine-amd64
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-amd64.tar.gz"
 
-FROM alpine:${ALPINE_VERSION} as alpine-386
+FROM alpine:${ALPINE_VERSION} AS alpine-386
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-x86.tar.gz"
 
-FROM alpine:${ALPINE_VERSION} as alpine-armv6
+FROM alpine:${ALPINE_VERSION} AS alpine-armv6
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-armhf.tar.gz"
 
-FROM alpine:${ALPINE_VERSION} as alpine-armv7
+FROM alpine:${ALPINE_VERSION} AS alpine-armv7
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-arm.tar.gz"
 
-FROM alpine:${ALPINE_VERSION} as alpine-arm64
+FROM alpine:${ALPINE_VERSION} AS alpine-arm64
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-aarch64.tar.gz"
 
-FROM alpine:${ALPINE_VERSION} as alpine-ppc64le
+FROM alpine:${ALPINE_VERSION} AS alpine-ppc64le
 
 ARG S6_OVERLAY_VERSION
 ARG S6_OVERLAY_BASE_URL
 ENV S6_OVERLAY_RELEASE="${S6_OVERLAY_BASE_URL}/s6-overlay-ppc64le.tar.gz"
 
 # Build ps3netsrv:master
-FROM alpine:${ALPINE_VERSION} as builder
+FROM alpine:${ALPINE_VERSION} AS builder
 
 ARG PS3NETSRV_REPO
-ARG PS3NETSRV_DIR
 ARG PS3NETSRV_REF
-ARG PS3NETSRV_RELEASE
 ARG PS3NETSRV_VERSION
 ARG PS3NETSRV_URL
 ARG BUILD_FROM_GIT
@@ -86,32 +82,35 @@ RUN \
     musl-dev \
     musl-dbg \
     musl-utils \
-    tar \
-    unzip
+    tar
 
 RUN \
   [ "${BUILD_FROM_GIT:-}" != "true" ] || (echo "Building ps3netsrv from git repo (ref: ${PS3NETSRV_REF})..." && \
     git clone --depth 1 "${PS3NETSRV_REPO}" --branch "${PS3NETSRV_REF}" repo && \
-    cd /tmp/repo/${PS3NETSRV_DIR} && \
+    cd /tmp/repo && \
     # Patch off64_t to off_t for Alpine 3.21+ \
     sed -i 's/\boff64_t\b/off_t/g' include/*.* && \
     sed -i 's/\boff64_t\b/off_t/g' src/*.* && \
-    meson build --buildtype=release && \
+    # meson does not define BUILD_DATE, so inject it the way upstream's Makefiles do \
+    meson build --buildtype=release \
+      -Dc_args=-DBUILD_DATE=\\\"$(date +%Y%m%d)\\\" \
+      -Dcpp_args=-DBUILD_DATE=\\\"$(date +%Y%m%d)\\\" && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
-    cp -v /tmp/repo/${PS3NETSRV_DIR}/build/ps3netsrv /tmp/ps3netsrv-bin/)
+    cp -v /tmp/repo/build/ps3netsrv /tmp/ps3netsrv-bin/)
 
 RUN \
-  [ "${BUILD_FROM_GIT:-}" == "true" ] || (echo "Building ps3netsrv from release (ps3netsrv_${PS3NETSRV_VERSION}.zip)..." && \
-    curl -sL --output /tmp/ps3netsrv.zip "${PS3NETSRV_URL}" && \
-    unzip /tmp/ps3netsrv.zip -d /tmp && \
-    makefile_path=$(find "/tmp" -type f -maxdepth 3 -iname "Makefile") && \
-    src_dir=$(dirname "$makefile_path") && \
-    cd "${src_dir}" && \
+  [ "${BUILD_FROM_GIT:-}" == "true" ] || (echo "Building ps3netsrv from release tag ${PS3NETSRV_VERSION}..." && \
+    curl -sL --output /tmp/ps3netsrv.tar.gz "${PS3NETSRV_URL}" && \
+    tar xzf /tmp/ps3netsrv.tar.gz -C /tmp && \
+    cd /tmp/ps3netsrv-*/ && \
     # Patch off64_t to off_t for Alpine 3.21+ \
     sed -i 's/\boff64_t\b/off_t/g' include/*.* && \
     sed -i 's/\boff64_t\b/off_t/g' src/*.* && \
-    meson build --buildtype=release && \
+    # meson does not define BUILD_DATE, so inject it the way upstream's Makefiles do \
+    meson build --buildtype=release \
+      -Dc_args=-DBUILD_DATE=\\\"${PS3NETSRV_VERSION}\\\" \
+      -Dcpp_args=-DBUILD_DATE=\\\"${PS3NETSRV_VERSION}\\\" && \
     ninja -C build/ && \
     mkdir -p /tmp/ps3netsrv-bin && \
     cp -v build/ps3netsrv /tmp/ps3netsrv-bin/)
