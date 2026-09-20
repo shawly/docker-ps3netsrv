@@ -1,0 +1,111 @@
+name: Help request
+description: You cannot get the container working and the troubleshooting guide did not solve it.
+title: "[HELP] "
+labels: ["help wanted"]
+assignees: [shawly]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ps3netsrv is stable and works for the vast majority of users. If it is not
+        working for you it is almost always the folder structure or the permissions
+        on your games directory, and both are covered in
+        [the troubleshooting guide](https://github.com/shawly/docker-ps3netsrv#troubleshooting).
+
+        **The container now diagnoses this itself.** `docker logs` prints exactly which
+        folders it cannot read, who owns them, and the command to fix it. Please read
+        that output before filing, it usually answers the question on its own.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before you file
+      options:
+        - label: I have read the [troubleshooting guide](https://github.com/shawly/docker-ps3netsrv#troubleshooting) and followed every step that applies.
+          required: true
+        - label: I have read my container log and it did not tell me what was wrong.
+          required: true
+        - label: I am using an official `shawly/ps3netsrv` or `ghcr.io/shawly/ps3netsrv` image, not a fork or my own build.
+          required: true
+
+  - type: input
+    id: help-code
+    attributes:
+      label: Help code
+      description: >
+        If you **actually** read the troubleshooting guide, you will know the code.
+      placeholder: "paste here"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is happening
+      description: What did you expect, and what happens instead? Include what the PS3 shows, if anything.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: image-tag
+    attributes:
+      label: Which image tag are you running
+      options:
+        - "latest"
+        - "slim"
+        - "edge"
+        - "a pinned ps3netsrv version (e.g. 20260913)"
+        - "a pinned release (e.g. v1.12.0)"
+        - "other / not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Container log
+      description: >
+        Output of `docker logs CONTAINERNAME`, from the very first line. This contains
+        the uid/gid the server runs as, the ps3netsrv version, and the full `/games`
+        permission report, so it replaces most of what I used to ask for separately.
+        Do not truncate it.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: health
+    attributes:
+      label: Health check output
+      description: "Output of `docker inspect --format '{{json .State.Health}}' CONTAINERNAME`"
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: run-command
+    attributes:
+      label: How you start the container
+      description: Your full `docker run` command or your complete `docker-compose.yml`. Redact nothing except real hostnames.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: host-perms
+    attributes:
+      label: Host side ownership
+      description: >
+        Output of `id` run as the user that owns your games folder, followed by
+        `ls -ln /path/to/your/games` (note the `-n`, I want the numeric ids).
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: NAS model, filesystem, whether the games sit on a network share, SELinux, anything unusual.
+    validations:
+      required: false

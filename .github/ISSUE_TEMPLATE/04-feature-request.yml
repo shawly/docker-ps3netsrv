@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest something the container should do that it does not do today.
+title: "[FEATURE] "
+labels: ["enhancement"]
+assignees: [shawly]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is for the **container**: environment variables, base images, tags,
+        health checks, startup behaviour.
+
+        Features of ps3netsrv itself belong at
+        [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv/issues). I package
+        it, I do not write it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the situation you are actually in, not the solution you already picked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What you would like it to do
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered instead
+      description: Including whether an existing environment variable or tag already gets you close.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Would you be willing to implement it
+      options:
+        - label: I am willing to open a pull request for this.
+          required: false

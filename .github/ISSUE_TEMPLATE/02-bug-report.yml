@@ -1,0 +1,110 @@
+name: Bug report
+description: The container itself is broken. Crashes, a failed build, a bad image, something that used to work and stopped.
+title: "[BUG] "
+labels: ["bug"]
+assignees: [shawly]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is for the **container** being broken, not for setup help and not for
+        ps3netsrv itself.
+
+        - Cannot get it working in the first place → use the Help request template.
+        - The standalone ps3netsrv binary has the same problem → report it at
+          [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv/issues), I only package it.
+        - The PS3 side misbehaves → [webMAN-MOD](https://github.com/aldostools/webMAN-MOD/issues).
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched the existing issues and this is not already reported.
+          required: true
+        - label: This is a problem with the container, not with my own configuration.
+          required: true
+
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: Be specific. "It doesn't work" is not a bug report.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: Numbered steps, starting from `docker run`. If I cannot reproduce it I cannot fix it.
+      placeholder: |
+        1. docker run -d --name ps3netsrv -v /srv/games:/games shawly/ps3netsrv:latest
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: tag
+    attributes:
+      label: Image tag
+      description: The exact tag, including the base suffix if you used one.
+      placeholder: "e.g. 20260913-alpine3.23, latest, edge-slim"
+    validations:
+      required: true
+
+  - type: input
+    id: last-working
+    attributes:
+      label: Last tag that worked
+      description: Leave blank if it never worked or you do not know. This is the single most useful field for a regression.
+      placeholder: "e.g. 20250501"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options:
+        - "x86-64 / amd64"
+        - "arm64 / aarch64"
+        - "armv7"
+        - "armv6 (Raspberry Pi 1 / Zero)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Container log
+      description: Output of `docker logs CONTAINERNAME`, complete, from the first line.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: run-command
+    attributes:
+      label: How you start the container
+      description: Full `docker run` command or complete `docker-compose.yml`.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: host
+    attributes:
+      label: Host
+      description: Output of `docker version` and `uname -a`, plus the OS or NAS firmware if relevant.
+      render: shell
+    validations:
+      required: true
