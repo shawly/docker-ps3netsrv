@@ -1,100 +1,244 @@
 #!/command/with-contenv bash
 
+# This runs in parallel with svc-ps3netsrv so a slow network share cannot hold
+# the server back. The result is left here for the healthcheck to pick up.
+STATUS_FILE=/run/ps3netsrv/check.status
+mkdir -p "$(dirname "${STATUS_FILE}")"
+
+function set_status() {
+    echo "$1" >"${STATUS_FILE}"
+}
+
 if [[ "${PS3NETSRV_SKIP_CHECKS:-}" == "true" ]]; then
     echo "Skipping folder structure checks because PS3NETSRV_SKIP_CHECKS is true..."
+    set_status skipped
     exit 0
 fi
 
-echo '
--------------------------------------
-Checking folder structure of /games directory
--------------------------------------'
+set_status running
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-declare -a folders=("GAMES" "PS3ISO" "PSXISO" "PS2ISO" "PSPISO" "BDISO" "DVDISO" "ROMS" "GAMEI" "PKG" "MOVIES" "MUSIC" "PICTURE" "REDKEY")
-declare -a existing_folders=()
+# Folders webMAN-MOD and ps3netsrv serve. Each may also be an .INI file
+# pointing at directories elsewhere.
+declare -a folders=(
+    "GAMES" "GAMEZ" "GAMEI" "PS3ISO" "PSXISO" "PS2ISO" "PSPISO"
+    "BDISO" "DVDISO" "ROMS" "PKG" "MOVIES" "MUSIC" "PICTURE" "REDKEY"
+)
 
-function check_permissions() {
-    local fullpath="${1:-}"
-    if ! s6-setuidgid ps3netsrv test -r "${fullpath}"; then
-        echo -e "${RED}ERROR: ${fullpath} is not readable for user ps3netsrv! Check ownership and permissions!${NC}"
-        echo -e "${fullpath} is owned by $(stat -c '%U' "${fullpath}") and has permissions $(stat -c '%A' "${fullpath}")"
-        ls -l "${fullpath}"
-    else
-        echo -e "${GREEN}OK: ${fullpath} is readable${NC}"
-        if [[ -z "$(ls "${fullpath}")" ]]; then
-            echo -e "${YELLOW}WARNING: ${fullpath} is empty, make sure to put your games here!${NC}"
-        else
-            unreadable_files="$(find "${fullpath}" -not -user "$(id -u ps3netsrv)" -not -exec s6-setuidgid ps3netsrv test -r {} \; -print)"
-            unreadable_files+="\n$(find "${fullpath}" -not -group "$(id -g ps3netsrv)" -not -exec s6-setuidgid ps3netsrv test -r {} \; -print)"
-            # remove duplicates from unreadable_files
-            unreadable_files="$(echo -e "${unreadable_files}" | sort | uniq)"
-            if [[ -n "${unreadable_files}" ]]; then
-                echo -e "${RED}ERROR: Found files or directories in ${fullpath} that ps3netsrv does not have permission to read:${NC}"
-                # loop over files line by line and ls -la the file:
-                while IFS= read -r file; do
-                    ls -l "${file}"
-                done <<<"${unreadable_files}"
-            fi
-        fi
+declare -a existing_folders=()
+declare -a problems=()
+GAMES_USABLE=true
+MAX_LISTED=15
+
+PS3NETSRV_UID="$(id -u ps3netsrv)"
+PS3NETSRV_GID="$(id -g ps3netsrv)"
+
+declare -a file_ok=( '(' -user "${PS3NETSRV_UID}" -perm -0400 ')' )
+declare -a dir_ok=( '(' -user "${PS3NETSRV_UID}" -perm -0500 ')' )
+for gid in $(id -G ps3netsrv); do
+    file_ok+=( -o '(' -group "${gid}" -perm -0040 ')' )
+    dir_ok+=( -o '(' -group "${gid}" -perm -0050 ')' )
+done
+file_ok+=( -o -perm -0004 )
+dir_ok+=( -o -perm -0005 )
+
+function find_unreadable() {
+    local target="${1:?}"
+    shift
+    find "${target}" "$@" \
+        '(' \
+            '(' -type d '!' '(' "${dir_ok[@]}" ')' ')' \
+            -o \
+            '(' '!' -type d '!' '(' "${file_ok[@]}" ')' ')' \
+        ')' -print 2>/dev/null
+}
+
+function describe() {
+    local path="${1:?}"
+    printf '%s (owner %s:%s, mode %s)' \
+        "${path}" \
+        "$(stat -c '%U' "${path}" 2>/dev/null || echo '?')" \
+        "$(stat -c '%G' "${path}" 2>/dev/null || echo '?')" \
+        "$(stat -c '%A' "${path}" 2>/dev/null || echo '?')"
+}
+
+function report_problem() {
+    problems+=("$1")
+    echo -e "${RED}ERROR: $1${NC}"
+}
+
+# Is this single directory usable by ps3netsrv, ignoring its contents?
+function dir_is_usable() {
+    [[ -z "$(find_unreadable "${1:?}" -maxdepth 0)" ]]
+}
+
+echo '
+-------------------------------------
+Checking folder structure of /games
+-------------------------------------'
+
+if [[ ! -d /games ]]; then
+    report_problem "/games does not exist. Did you forget -v /path/to/games:/games ?"
+elif ! dir_is_usable /games; then
+    report_problem "$(describe /games) cannot be entered by ps3netsrv (uid ${PS3NETSRV_UID}).
+       Every folder below it is unreachable until this is fixed."
+    GAMES_USABLE=false
+else
+    echo -e "${GREEN}OK: /games is readable${NC}"
+fi
+
+function check_folder() {
+    local fullpath="${1:?}"
+
+    if ! dir_is_usable "${fullpath}"; then
+        report_problem "$(describe "${fullpath}") is not readable by ps3netsrv (uid ${PS3NETSRV_UID})"
         existing_folders+=("${fullpath}")
+        return
+    fi
+
+    existing_folders+=("${fullpath}")
+
+    if [[ "${GAMES_USABLE}" != "true" && "${fullpath}" == /games/* ]]; then
+        echo -e "${YELLOW}UNREACHABLE: ${fullpath} looks fine itself, but /games above it does not${NC}"
+        return
+    fi
+
+    echo -e "${GREEN}OK: ${fullpath} is readable${NC}"
+
+    if [[ -z "$(ls -A "${fullpath}" 2>/dev/null)" ]]; then
+        echo -e "${YELLOW}WARNING: ${fullpath} is empty, make sure to put your games here!${NC}"
+        return
+    fi
+
+    local unreadable count
+    unreadable="$(find_unreadable "${fullpath}" -mindepth 1)"
+    [[ -z "${unreadable}" ]] && return
+
+    count="$(wc -l <<<"${unreadable}")"
+    report_problem "${count} file(s) or folder(s) inside ${fullpath} are not readable by ps3netsrv"
+    while IFS= read -r path; do
+        echo "       $(describe "${path}")"
+    done <<<"$(head -n "${MAX_LISTED}" <<<"${unreadable}")"
+    if (( count > MAX_LISTED )); then
+        echo "       ... and $(( count - MAX_LISTED )) more"
     fi
 }
 
 for folder in "${folders[@]}"; do
+    if [[ ! -d "/games/${folder}" ]] && [[ ! -f "/games/${folder}.INI" ]]; then
+        continue
+    fi
+
     echo "--- Checking ${folder} ---"
+
     if [[ -d "/games/${folder}" ]]; then
-        echo "Directory /games/${folder}/ found, checking permissions..."
-        check_permissions "/games/${folder}"
+        check_folder "/games/${folder}"
     fi
 
     if [[ -f "/games/${folder}.INI" ]]; then
-        echo -e "File /games/${folder}.INI found, checking if linked directories inside exist..."
-        mapfile -t ini_folders <"/games/${folder}.INI"
-        for linked_dir in "${ini_folders[@]}"; do
+        echo "File /games/${folder}.INI found, checking the directories it points at..."
+
+        if grep -q $'\r' "/games/${folder}.INI"; then
+            echo -e "${YELLOW}WARNING: /games/${folder}.INI has Windows (CRLF) line endings.${NC}"
+            echo -e "${YELLOW}         ps3netsrv may fail to open these paths. Re-save the file with Unix (LF) line endings.${NC}"
+        fi
+
+        while IFS= read -r linked_dir; do
+            # Mirror what ps3netsrv itself strips, plus the stray CR above
+            linked_dir="${linked_dir%$'\r'}"
+            linked_dir="${linked_dir#"${linked_dir%%[![:space:]]*}"}"
+            linked_dir="${linked_dir%"${linked_dir##*[![:space:]]}"}"
+            [[ -z "${linked_dir}" ]] && continue
+            [[ "${linked_dir}" == \#* ]] && continue
+
             echo "--- Checking ${folder}.INI -> ${linked_dir} ---"
             if [[ -d "${linked_dir}" ]]; then
-                echo "Linked directory ${linked_dir} found in ${folder}.INI, checking permissions..."
-                check_permissions "${linked_dir}"
+                check_folder "${linked_dir}"
             else
-                echo -e "${RED}ERROR: Linked directory ${linked_dir} not found, please check your ${folder}.INI...${NC}"
+                report_problem "${folder}.INI points at ${linked_dir}, which does not exist inside the container.
+       Remember the path has to be the path *in the container*, so somewhere under /games."
             fi
-        done
-    fi
-
-    if [[ ! -d "/games/${folder}" ]] && [[ ! -f "/games/${folder}.INI" ]]; then
-        echo -e "Directory /games/${folder}/ and /games/${folder}.INI do not exist, skipping checks..."
+        done <"/games/${folder}.INI"
     fi
 done
 
+echo
+echo "-------------------------------------"
+
 if [[ "${#existing_folders[@]}" -eq 0 ]]; then
-    echo -e "${RED}You do not have any readable folders in /games!${NC}\nPlease read the wiki https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server"
+    echo -e "${RED}${BOLD}No ps3netsrv folders found in /games at all.${NC}"
+    if [[ -z "$(ls -A /games 2>/dev/null)" ]]; then
+        echo "/games is completely empty. Did you forget to mount your library?"
+        echo
+        echo "    docker run -v /path/to/your/games:/games ..."
+        echo
+    fi
+    echo "ps3netsrv expects at least one of these directories (or a matching .INI) in /games:"
+    echo "    ${folders[*]}"
+    echo "See https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server"
+    echo "-------------------------------------"
+    set_status "no-folders"
     exit 0
 fi
 
+if [[ "${#problems[@]}" -gt 0 ]]; then
+    echo -e "${RED}${BOLD}${#problems[@]} problem(s) found.${NC} ps3netsrv will start, but the PS3 will not see"
+    echo "everything until these are fixed."
+    echo
+    echo "ps3netsrv runs as uid ${PS3NETSRV_UID}, gid ${PS3NETSRV_GID} inside the container."
+    echo "Either make your files readable by that id on the host:"
+    echo
+    echo "    sudo chown -R ${PS3NETSRV_UID}:${PS3NETSRV_GID} /path/to/your/games"
+    echo "    sudo chmod -R u=rwX,go=rX /path/to/your/games"
+    echo
+    echo "or run the container with PUID/PGID set to the user that already owns them:"
+    echo
+    echo "    docker run -e PUID=\$(id -u) -e PGID=\$(id -g) ..."
+    echo
+    echo "or set PS3NETSRV_FIX_PERMISSIONS=true to let this container rewrite them"
+    echo "on every start (it changes your files on the host, so think first)."
+    set_status "problems ${#problems[@]}"
+else
+    echo -e "${GREEN}${BOLD}All good.${NC} ps3netsrv can read every folder found in /games."
+    set_status ok
+fi
+echo "-------------------------------------"
+
 if [[ "${PS3NETSRV_FIX_PERMISSIONS:-false}" == "true" ]]; then
-    echo >&2 "WARNING: PS3NETSRV_FIX_PERMISSIONS is enabled! This will change the ownership and permissions of all folders in /games!"
-    echo "Changing ownership of /games to ps3netsrv:ps3netsrv ..."
+    echo
+    echo -e "${YELLOW}WARNING: PS3NETSRV_FIX_PERMISSIONS is enabled, rewriting ownership and${NC}"
+    echo -e "${YELLOW}         permissions of everything in /games on the host filesystem.${NC}"
+
+    folder_mode="${PS3NETSRV_FOLDER_PERMISSIONS:-755}"
+    file_mode="${PS3NETSRV_FILE_PERMISSIONS:-644}"
+
+    echo "Changing ownership of /games to ps3netsrv:ps3netsrv..."
     chown ps3netsrv:ps3netsrv /games
-    echo "Changing permissions of /games to ${PS3NETSRV_FOLDER_PERMISSIONS:-755}..."
-    chmod "${PS3NETSRV_FOLDER_PERMISSIONS:-755}" /games
+    echo "Changing permissions of /games to ${folder_mode}..."
+    chmod "${folder_mode}" /games
+
     for folder in "${existing_folders[@]}"; do
-        echo "Changing ownership of files and directories in ${folder} to ps3netsrv:ps3netsrv..."
-        find "${folder}" -not -user "$(id -u ps3netsrv)" -exec chown -h ps3netsrv {} \;
-        find "${folder}" -not -group "$(id -g ps3netsrv)" -exec chgrp -h ps3netsrv {} \;
-
-        echo "Changing permissions of directories in ${folder} to ${PS3NETSRV_FOLDER_PERMISSIONS:-755}..."
-        find "${folder}" -type d -exec chmod "${PS3NETSRV_FOLDER_PERMISSIONS:-755}" {} \;
-
-        echo "Changing permissions of files in ${folder} to ${PS3NETSRV_FILE_PERMISSIONS:-644}..."
-        find "${folder}" -type f -exec chmod "${PS3NETSRV_FILE_PERMISSIONS:-644}" {} \;
+        echo "Fixing ${folder}..."
+        chown -R -h ps3netsrv:ps3netsrv "${folder}"
+        find "${folder}" -type d -exec chmod "${folder_mode}" {} +
+        find "${folder}" -type f -exec chmod "${file_mode}" {} +
     done
+
+    remaining="$(for folder in "${existing_folders[@]}"; do find_unreadable "${folder}"; done)"
+    if [[ -n "${remaining}" ]]; then
+        echo -e "${RED}ERROR: still unreadable after fixing, the host may be blocking it${NC}"
+        echo -e "${RED}       (read-only mount, NFS squash, SELinux):${NC}"
+        head -n "${MAX_LISTED}" <<<"${remaining}"
+    else
+        echo -e "${GREEN}Everything in /games is readable now.${NC}"
+        set_status ok
+    fi
+    echo "-------------------------------------"
 fi
 
-echo "
--------------------------------------
-"
+echo

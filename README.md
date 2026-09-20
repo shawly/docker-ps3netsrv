@@ -1,6 +1,14 @@
 # Docker container for ps3netsrv (or ps3netsvr)
 
-[![Docker Automated build](https://img.shields.io/badge/docker%20build-automated-brightgreen)](https://github.com/shawly/docker-ps3netsrv/actions) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/shawly/docker-ps3netsrv/Docker)](https://github.com/shawly/docker-ps3netsrv/actions) [![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv)](https://hub.docker.com/r/shawly/ps3netsrv) [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/shawly/ps3netsrv/latest)](https://hub.docker.com/r/shawly/ps3netsrv) [![GitHub Release](https://img.shields.io/github/release/shawly/docker-ps3netsrv.svg)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/shawly/docker-ps3netsrv/docker-publish.yml?branch=main&label=build&logo=github)](https://github.com/shawly/docker-ps3netsrv/actions/workflows/docker-publish.yml)
+[![Release](https://img.shields.io/github/v/release/shawly/docker-ps3netsrv?logo=github)](https://github.com/shawly/docker-ps3netsrv/releases/latest)
+[![ps3netsrv](https://img.shields.io/github/v/release/aldostools/ps3netsrv?label=ps3netsrv&logo=playstation)](https://github.com/aldostools/ps3netsrv/releases/latest)
+[![License](https://img.shields.io/github/license/shawly/docker-ps3netsrv)](https://github.com/shawly/docker-ps3netsrv/blob/main/LICENSE)
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/shawly/ps3netsrv?logo=docker&logoColor=white)](https://hub.docker.com/r/shawly/ps3netsrv)
+[![Image Size](https://img.shields.io/docker/image-size/shawly/ps3netsrv/latest?logo=docker&logoColor=white&label=image%20size)](https://hub.docker.com/r/shawly/ps3netsrv/tags)
+[![Docker Version](https://img.shields.io/docker/v/shawly/ps3netsrv?sort=semver&logo=docker&logoColor=white&label=docker)](https://hub.docker.com/r/shawly/ps3netsrv/tags)
+[![Stars](https://img.shields.io/github/stars/shawly/docker-ps3netsrv?logo=github)](https://github.com/shawly/docker-ps3netsrv/stargazers)
 
 This is a Docker container for ps3netsrv (or ps3netsvr).
 
@@ -8,7 +16,7 @@ This is a Docker container for ps3netsrv (or ps3netsvr).
 
 [![ps3netsrv logo](https://images.weserv.nl/?url=raw.githubusercontent.com/shawly/docker-ps3netsrv/master/ps3netsrv-icon.png&w=200)](https://github.com/aldostools/ps3netsrv)[![ps3netsrv](https://dummyimage.com/400x110/ffffff/575757&text=ps3netsrv)](https://github.com/aldostools/ps3netsrv)
 
-ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binaries built from the latest sources of [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv).
+ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binaries built from the sources of [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv).
 
 ---
 
@@ -16,12 +24,13 @@ ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
 
 - [Docker container for ps3netsrv](#docker-container-for-ps3netsrv)
   - [Table of Content](#table-of-content)
-  - [Supported tags](#supported-tags)
+  - [Supported tags and respective `Dockerfile` links](#supported-tags-and-respective-dockerfile-links)
   - [Image Variants](#image-variants)
-  - [Supported Architectures](#supported-architectures)
+  - [Releases](#releases)
   - [Quick Start](#quick-start)
   - [Usage](#usage)
     - [Environment Variables](#environment-variables)
+    - [Health Check](#health-check)
     - [Data Volumes](#data-volumes)
     - [Ports](#ports)
     - [Changing Parameters of a Running Container](#changing-parameters-of-a-running-container)
@@ -31,43 +40,103 @@ ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
   - [Troubleshooting](#troubleshooting)
   - [Support or Contact](#support-or-contact)
 
-## Supported tags
+## Supported tags and respective `Dockerfile` links
 
 <!-- supported tags will be auto updated through workflows! -->
-- `edge`, `edge-20260913` <!-- edge tag -->
-- `latest`, `v1`, `v1.12`, `v1.12.0`, `20260913` <!-- latest tag -->
+<!-- tags start -->
+-	[`20260913`, `20260913-alpine`, `20260913-alpine3.23`, `alpine`, `alpine3.23`, `latest`, `v1`, `v1.12`, `v1.12.0`, `v1.12.0-alpine`, `v1.12.0-alpine3.23`, `v1.12-alpine`, `v1.12-alpine3.23`, `v1-alpine`, `v1-alpine3.23`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
+
+-	[`20260913-slim`, `20260913-trixie-slim`, `slim`, `trixie-slim`, `v1.12.0-slim`, `v1.12.0-trixie-slim`, `v1.12-slim`, `v1.12-trixie-slim`, `v1-slim`, `v1-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
+
+-	[`20250501`, `20250501-alpine`, `20250501-alpine3.23`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
+
+-	[`20250501-slim`, `20250501-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
+
+-	[`20250216`, `20250216-alpine`, `20250216-alpine3.23`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
+
+-	[`20250216-slim`, `20250216-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
+
+-	[`edge`, `edge-alpine`, `edge-alpine3.23`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
+
+-	[`edge-slim`, `edge-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
+<!-- tags end -->
 
 ## Image Variants
 
-This image comes in two different variants.
+Tags follow the convention of the official Docker library images. The ps3netsrv
+build date is the version, the base image version is part of the tag, and
+`alpine` is the default base so it also owns the bare tags.
 
-### `shawly/ps3netsrv:<version>`
+| Tag                          | Meaning                                                    |
+| ---------------------------- | ---------------------------------------------------------- |
+| `20260913-alpine3.23`        | ps3netsrv 20260913 on Alpine 3.23. Fully pinned.            |
+| `20260913-alpine`            | Same, but follows whichever Alpine version is current.      |
+| `20260913`                   | Same again, `alpine` being the default base.                |
+| `alpine3.23`, `alpine`       | Newest ps3netsrv release on that base.                      |
+| `latest`                     | Newest ps3netsrv release on the default base.               |
+| `20260913-trixie-slim`       | ps3netsrv 20260913 on Debian trixie slim. Fully pinned.     |
+| `20260913-slim`, `slim`      | The Debian slim variant, following the current suite.       |
+| `v1`, `v1.11`, `v1.11.0`     | This repository's own release tags, with `-slim` variants.  |
+| `edge`                       | Built from upstream `master`, rebuilt daily.                |
 
-This image represents a stable or considered "working" build of ps3netsrv and should be preferred.  
-It is built from the latest released version, found in the [ps3netsrv releases](https://github.com/aldostools/ps3netsrv/releases).
+### Choosing a base
 
-If you want a specific ps3netsrv version, you can use the tag of the version e.g. `20220813`.
+| Base    | Notes                                                                    |
+| ------- | ------------------------------------------------------------------------ |
+| Alpine  | Default. Smallest image, musl libc.                                       |
+| Debian slim | glibc. Try it if a share or filesystem misbehaves under musl.        |
 
-### `shawly/ps3netsrv:edge-<version>`
+### `shawly/ps3netsrv:edge`
 
-This image represents a development state of this repo. It contains the latest features but is not considered stable, it can contain bugs and breaking changes.  
-If you are not sure what to choose, use the `latest` image or a version like `v1` or `20220813`.  
-This image will be built from the latest release found in the [ps3netsrv releases](https://github.com/aldostools/ps3netsrv/releases) as well, but it will be bleeding edge, meaning it will be updated as soon as a new release is found.
+Built from the `master` branch of
+[aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv), rebuilt daily.
+Latest upstream code, not considered stable.
 
-## Supported Architectures
+## Releases
 
-The architectures supported by this image are:
+`latest` tracks the newest ps3netsrv release on its own. It moves within a day
+of aldostools publishing, no action needed on this side.
 
-| Architecture | Status                                                          |
-| :----------: | --------------------------------------------------------------- |
-|    x86-64    | working                                                         |
-|    arm64     | [working](https://github.com/shawly/docker-ps3netsrv/issues/19) |
-|    armv7     | untested                                                        |
-|    armhf     | working                                                         |
+This repository's own `v1.x.y` tags are a separate, deliberate thing, and they
+are proposed automatically by
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
-_I'm declaring the arm images as **untested** because I only own an older first generation RaspberryPi Model B+ I can't properly test the image on other devices, technically it should work on all RaspberryPi models and similar SoCs. While emulating the architecture with qemu works and can be used for testing, I can't guarantee that there will be no issues, just try it._
+### How the version is chosen
 
-_I would be glad if you could [create a small report](https://github.com/shawly/docker-ps3netsrv/issues/new/choose) (choose ARM Compatibility Report) to tell me which device you've tested and if it's working or not._
+The bump is derived from conventional commits since the last release, and from
+whether upstream moved. Whichever is larger wins.
+
+| Trigger | Bump |
+| --- | --- |
+| `feat!:` / `fix!:` etc, or a `BREAKING CHANGE:` footer | major |
+| `feat:` | minor |
+| A new upstream ps3netsrv release | minor |
+| `fix:` | patch |
+| Only `chore:`, `ci:`, `docs:`, `refactor:` | nothing is released |
+
+Commits are read from the squash-merge subjects on `main`, so the message you
+pick when merging a PR is what decides the version. A breaking change has to say
+so there.
+
+You can override it by running the workflow manually and picking an explicit
+bump instead of `auto`.
+
+### How a release happens
+
+1. Something worth releasing lands on `main`, or upstream publishes.
+2. The workflow opens a PR bumping
+   [`.github/release.json`](.github/release.json) and regenerating the README
+   tag table, then holds it for 14 days. The PR body says what is being cut,
+   why, and when it becomes mergeable, and lists any breaking changes.
+3. If upstream publishes again inside that window, the PR is rewritten for the
+   newer version and the clock restarts.
+4. Once the window is up the workflow merges the PR and cuts the GitHub
+   release. Merging the PR by hand at any point releases immediately.
+
+`.github/release.json` records which ps3netsrv version the current release
+shipped. That is what puts the `v1.x.y` tags on the right line in the table
+above, and it is bumped in the release PR itself, so the commit a release tags
+already shows the correct versions.
 
 ## Quick Start
 
@@ -118,7 +187,37 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `PGID`            | ID of the group the application runs as. See [User/Group IDs](#usergroup-ids) to better understand when this should be set.         | `1000`    |
 | `PS3NETSRV_PORT`      | Port used by ps3netsrv. You only need to change this when using network_mode host, otherwise you can just remap ports using Docker! | `38008`   |
 | `PS3NETSRV_WHITELIST` | Whitelist IPs e.g. `192.168.1.*` or `192.168.1.10-192.168.1.200`, this probably only works with network_mode host!                  | ``        |
+| `PS3NETSRV_BINARY`    | Which build to run: `mbedtls` (links the system mbedTLS) or `polarssl` (upstream's `Makefile.linux`, bundled AES). Try the other one if decryption misbehaves. | `mbedtls` |
+| `UMASK`               | umask applied to the ps3netsrv process.                                                                                            | `022`     |
+| `PS3NETSRV_SKIP_CHECKS` | Set to `true` to skip the startup check of the `/games` folder structure and permissions.                                        | `false`   |
+| `PS3NETSRV_FIX_PERMISSIONS` | Set to `true` to have the container chown and chmod everything under `/games` on startup. Destructive, off by default.        | `false`   |
+| `PS3NETSRV_FOLDER_PERMISSIONS` | Mode applied to directories when `PS3NETSRV_FIX_PERMISSIONS` is `true`.                                                   | `755`     |
+| `PS3NETSRV_FILE_PERMISSIONS` | Mode applied to files when `PS3NETSRV_FIX_PERMISSIONS` is `true`.                                                           | `644`     |
 | `TZ`                  | [TimeZone] of the container. Timezone can also be set by mapping `/etc/localtime` between the host and the container.               | `Etc/UTC` |
+
+### Health Check
+
+Both images ship a `HEALTHCHECK`, so `docker ps` tells you whether the
+container is actually usable rather than merely running:
+
+| State | Meaning |
+| --- | --- |
+| `healthy` | ps3netsrv owns the listening socket on its port, and `/games` checked out |
+| `unhealthy` | the port is not listening, or the `/games` check found problems |
+
+The second half matters: ps3netsrv starts and listens quite happily on a
+library it has no permission to read, which looks fine from the outside and is
+the usual reason for "it runs but my PS3 sees nothing". `docker inspect` shows
+the reason, the container log shows the detail:
+
+```bash
+docker inspect --format '{{json .State.Health}}' ps3netsrv
+```
+
+The `/games` check runs in parallel with the server, so a large or slow share
+never delays startup. While it is still running the container stays healthy on
+the strength of the port check alone. Set `PS3NETSRV_SKIP_CHECKS=true` to drop
+the `/games` half entirely and health-check only the port.
 
 ### Data Volumes
 
@@ -301,7 +400,7 @@ drwxrwx---   7 ps3netsrv ps3netsrv   7 Jun 21  2019 PS3ISO
 ```
 
 If the folders aren't owned by ps3netsrv or you are not seeing the GAMES and PS3ISO folders, repeat the troubleshooting steps **A** and **B** above.
-If it still doesn't work, you can create a help request with the secret code "SSBoYXZlIHJlYWQsIGZvbGxvd2VkIGFuZCB0cmllZCBldmVyeSB0cm91Ymxlc2hvb3Rpbmcgc3RlcCwgYnV0IGl0IHN0aWxsIGRvZXNuJ3Qgd29yaywgcGxlYXNlIGhlbHAgbWUu".
+If it still doesn't work, you can create a help request with this: "SSBoYXZlIHJlYWQsIGZvbGxvd2VkIGFuZCB0cmllZCBldmVyeSB0cm91Ymxlc2hvb3Rpbmcgc3RlcCwgYnV0IGl0IHN0aWxsIGRvZXNuJ3Qgd29yaywgcGxlYXNlIGhlbHAgbWUu".
 
 ### The container won't start or webMAN-MOD can't connect to the container
 
@@ -319,4 +418,4 @@ If the issue also happens with the ps3netsrv standalone on a standard ext4 files
 Still have trouble with the container or have questions? Please
 [create a new issue]. The secret code for help issues is hidden in the troubleshooting steps, read them carefully. If you do not add the help code to your issue, I will have to close it sorry.
 
-[create a new issue]: https://github.com/shawly/docker-ps3netsrv/issues
+[create a new issue]: https://github.com/shawly/docker-ps3netsrv/issues/new/choose

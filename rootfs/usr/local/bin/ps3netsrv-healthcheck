@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Healthy means two separate things:
+#   1. ps3netsrv is actually accepting connections on its configured port
+#   2. the /games permission check did not find anything wrong
+#
+# Reads /proc/net/tcp directly so this needs no ss, netstat or lsof. The uid
+# column there also proves the socket belongs to ps3netsrv rather than to
+# something else that happened to grab the port.
+#
+# Deliberately not a with-contenv script: Docker runs HEALTHCHECK without
+# /command on PATH, so execline is unavailable here. Docker hands us the image
+# ENV anyway, and s6 keeps its own copy on disk as a fallback.
+#
+set -uo pipefail
+
+S6_ENV=/run/s6/container_environment
+
+function contenv() {
+    local name="${1:?}" default="${2-}"
+    if [[ -n "${!name:-}" ]]; then
+        printf '%s' "${!name}"
+    elif [[ -r "${S6_ENV}/${name}" ]]; then
+        cat "${S6_ENV}/${name}"
+    else
+        printf '%s' "${default}"
+    fi
+}
+
+PORT="$(contenv PS3NETSRV_PORT 38008)"
+STATUS_FILE=/run/ps3netsrv/check.status
+
+PS3NETSRV_UID="$(id -u ps3netsrv 2>/dev/null || echo 1000)"
+HEX_PORT="$(printf '%04X' "${PORT}")"
+
+listening=false
+for proc_file in /proc/net/tcp /proc/net/tcp6; do
+    [[ -r "${proc_file}" ]] || continue
+    # sl local_address rem_address st tx:rx tr:when retrnsmt uid ...
+    while read -r _ local_addr _ state _ _ _ sock_uid _; do
+        [[ "${state}" == "0A" ]] || continue              # 0A = TCP_LISTEN
+        [[ "${local_addr##*:}" == "${HEX_PORT}" ]] || continue
+        if [[ "${sock_uid}" == "${PS3NETSRV_UID}" ]]; then
+            listening=true
+            break 2
+        fi
+        echo "port ${PORT} is listening but owned by uid ${sock_uid}, not ps3netsrv (${PS3NETSRV_UID})"
+        exit 1
+    done <"${proc_file}"
+done
+
+if [[ "${listening}" != "true" ]]; then
+    echo "ps3netsrv is not listening on port ${PORT}"
+    exit 1
+fi
+
+# The folder check runs in parallel with the server, so it may not have
+# finished yet on a large or slow share. That is not a failure.
+status="$(cat "${STATUS_FILE}" 2>/dev/null || echo running)"
+
+case "${status}" in
+    ok)
+        echo "ps3netsrv listening on ${PORT}, /games readable"
+        ;;
+    skipped)
+        echo "ps3netsrv listening on ${PORT}, folder checks skipped"
+        ;;
+    running)
+        echo "ps3netsrv listening on ${PORT}, folder check still running"
+        ;;
+    no-folders)
+        echo "ps3netsrv listening on ${PORT}, but no ps3netsrv folders were found in /games"
+        exit 1
+        ;;
+    problems*)
+        echo "ps3netsrv listening on ${PORT}, but the folder check found ${status#problems } problem(s) in /games, see the container log"
+        exit 1
+        ;;
+    *)
+        echo "unexpected folder check status: ${status}"
+        exit 1
+        ;;
+esac
