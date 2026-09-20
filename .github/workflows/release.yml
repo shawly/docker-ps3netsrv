@@ -1,0 +1,369 @@
+name: Propose release
+
+# When aldostools publishes a new ps3netsrv release, main starts building it and
+# `latest` follows along immediately. Cutting one of *our* releases is a separate,
+# deliberate act, so this workflow opens a PR for it and holds the merge for a
+# cooling off period, in case another upstream fix lands right after. The PR is
+# the visible knob: merge it yourself to release now, or let the workflow merge
+# it once the window is up.
+#
+# Merging the PR is what creates the release. The PR already carries the bumped
+# .github/release.json and the regenerated README, so the tag ends up on a commit
+# that describes itself correctly instead of showing the previous version.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump. auto derives it from conventional commits and upstream."
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+      release_now:
+        description: "Ignore the hold back window and release immediately"
+        type: boolean
+        default: false
+
+env:
+  # How long to sit on a new upstream release before cutting ours. The clock
+  # runs from the upstream publish date, so another upstream release inside the
+  # window pushes the date back out, which is the whole point.
+  HOLD_BACK_DAYS: 14
+  RELEASE_BRANCH: release/next
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Work out whether we owe a release
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+          BUMP_INPUT: ${{ inputs.bump || 'auto' }}
+        run: |
+          set -euo pipefail
+
+          shipped_version=$(jq -r '.version' .github/release.json)
+          shipped_ps3netsrv=$(jq -r '.ps3netsrv_version' .github/release.json)
+
+          upstream=$(gh api repos/aldostools/ps3netsrv/releases \
+            --jq '[.[] | select(.draft == false and .prerelease == false)][0]')
+          upstream_version=$(jq -r '.tag_name' <<< "$upstream")
+          upstream_published=$(jq -r '.published_at' <<< "$upstream")
+          upstream_url=$(jq -r '.html_url' <<< "$upstream")
+
+          echo "Our release:     v${shipped_version} (ps3netsrv ${shipped_ps3netsrv})"
+          echo "Upstream newest: ${upstream_version} (published ${upstream_published})"
+
+          # A release is owed for either reason: upstream shipped something new,
+          # or this repository itself changed in a way that warrants a version.
+          upstream_changed=false
+          if [ "${upstream_version}" != "${shipped_ps3netsrv}" ]; then
+            upstream_changed=true
+          fi
+
+          # Conventional commits since our last release decide the bump for
+          # container side changes. "feat!:" or a "BREAKING CHANGE:" footer is
+          # major, "feat:" is minor, "fix:" is patch.
+          range="HEAD"
+          if git rev-parse -q --verify "refs/tags/v${shipped_version}^{commit}" >/dev/null; then
+            range="v${shipped_version}..HEAD"
+          else
+            echo "No v${shipped_version} tag found, considering all history."
+          fi
+
+          subjects=$(git log --format='%s' "${range}")
+          bodies=$(git log --format='%b' "${range}")
+          commit_count=$(git rev-list --count "${range}")
+
+          commit_bump=none
+          if grep -qE '^[a-z]+(\(.+\))?!:' <<< "${subjects}" || grep -q 'BREAKING CHANGE:' <<< "${bodies}"; then
+            commit_bump=major
+          elif grep -qE '^feat(\(.+\))?:' <<< "${subjects}"; then
+            commit_bump=minor
+          elif grep -qE '^fix(\(.+\))?:' <<< "${subjects}"; then
+            commit_bump=patch
+          fi
+
+          echo "${commit_count} commit(s) since v${shipped_version}, conventional commits suggest: ${commit_bump}"
+
+          # Upstream moving is worth a minor on its own
+          upstream_bump=none
+          if [ "${upstream_changed}" = "true" ]; then
+            upstream_bump=minor
+          fi
+
+          function rank() {
+            case "$1" in
+              major) echo 3 ;;
+              minor) echo 2 ;;
+              patch) echo 1 ;;
+              *)     echo 0 ;;
+            esac
+          }
+
+          if [ "${BUMP_INPUT}" != "auto" ]; then
+            bump="${BUMP_INPUT}"
+            echo "Bump forced to ${bump} by workflow input."
+          elif [ "$(rank "${commit_bump}")" -ge "$(rank "${upstream_bump}")" ]; then
+            bump="${commit_bump}"
+          else
+            bump="${upstream_bump}"
+          fi
+
+          if [ "${bump}" = "none" ]; then
+            echo "Nothing to release: upstream unchanged and no feat/fix/breaking commits since v${shipped_version}."
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS=. read -r major minor patch <<< "${shipped_version}"
+          case "${bump}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "Unknown bump: ${bump}" >&2; exit 1 ;;
+          esac
+          next_version="${major}.${minor}.${patch}"
+
+          # The hold back clock runs from whatever drove this release. For an
+          # upstream release that is its publish date, so another upstream fix
+          # inside the window pushes the date back out. For container side
+          # changes it is the newest commit.
+          if [ "${upstream_changed}" = "true" ]; then
+            driver_date="${upstream_published}"
+            driver="upstream release ${upstream_version}"
+          else
+            driver_date=$(git log -1 --format='%cI' "${range}")
+            driver="container changes since v${shipped_version}"
+          fi
+
+          driver_epoch=$(date -u -d "${driver_date}" +%s)
+          eligible_epoch=$(( driver_epoch + HOLD_BACK_DAYS * 86400 ))
+          now_epoch=$(date -u +%s)
+          eligible_at=$(date -u -d "@${eligible_epoch}" +%Y-%m-%dT%H:%M:%SZ)
+
+          if [ "${now_epoch}" -ge "${eligible_epoch}" ]; then
+            eligible=true
+            days_left=0
+          else
+            eligible=false
+            days_left=$(( (eligible_epoch - now_epoch + 86399) / 86400 ))
+          fi
+
+          # Breaking commits are worth spelling out in the PR and the release notes
+          breaking=$(git log --format='%s' "${range}" | grep -E '^[a-z]+(\(.+\))?!:' || true)
+          if grep -q 'BREAKING CHANGE:' <<< "${bodies}"; then
+            breaking="${breaking}${breaking:+$'\n'}$(git log --format='%s' --grep='BREAKING CHANGE:' "${range}")"
+          fi
+          # A commit can carry both the ! marker and the footer, list it once
+          breaking=$(awk 'NF && !seen[$0]++' <<< "${breaking}")
+
+          echo "Proposing v${next_version} (${bump}), mergeable from ${eligible_at} (eligible now: ${eligible})"
+
+          {
+            echo "needed=true"
+            echo "bump=${bump}"
+            echo "next_version=${next_version}"
+            echo "upstream_version=${upstream_version}"
+            echo "upstream_published=${upstream_published}"
+            echo "upstream_url=${upstream_url}"
+            echo "upstream_changed=${upstream_changed}"
+            echo "shipped_version=${shipped_version}"
+            echo "shipped_ps3netsrv=${shipped_ps3netsrv}"
+            echo "commit_count=${commit_count}"
+            echo "driver=${driver}"
+            echo "eligible_at=${eligible_at}"
+            echo "eligible=${eligible}"
+            echo "days_left=${days_left}"
+            echo "breaking<<EOF_BREAKING"
+            echo "${breaking}"
+            echo "EOF_BREAKING"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build the release branch
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+          NEXT_VERSION: ${{ steps.check.outputs.next_version }}
+          UPSTREAM_VERSION: ${{ steps.check.outputs.upstream_version }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RELEASE_BRANCH}"
+
+          jq -n \
+            --arg version "${NEXT_VERSION}" \
+            --arg ps3netsrv_version "${UPSTREAM_VERSION}" \
+            '{version: $version, ps3netsrv_version: $ps3netsrv_version}' \
+            > .github/release.json
+
+          # Regenerate the supported tags against the new release state, so the
+          # commit this release tags already shows the right versions
+          .github/render-readme-tags.sh "${REPO_URL}"
+
+          git add .github/release.json README.md
+          if git diff --cached --quiet; then
+            echo "Release branch already up to date."
+          else
+            git commit -m "chore(release): v${NEXT_VERSION} (ps3netsrv ${UPSTREAM_VERSION})"
+          fi
+          git push --force origin "${RELEASE_BRANCH}"
+
+      - name: Open or update the release PR
+        if: steps.check.outputs.needed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+          NEXT_VERSION: ${{ steps.check.outputs.next_version }}
+          UPSTREAM_VERSION: ${{ steps.check.outputs.upstream_version }}
+          UPSTREAM_PUBLISHED: ${{ steps.check.outputs.upstream_published }}
+          UPSTREAM_URL: ${{ steps.check.outputs.upstream_url }}
+          SHIPPED_VERSION: ${{ steps.check.outputs.shipped_version }}
+          SHIPPED_PS3NETSRV: ${{ steps.check.outputs.shipped_ps3netsrv }}
+          BUMP: ${{ steps.check.outputs.bump }}
+          DRIVER: ${{ steps.check.outputs.driver }}
+          COMMIT_COUNT: ${{ steps.check.outputs.commit_count }}
+          UPSTREAM_CHANGED: ${{ steps.check.outputs.upstream_changed }}
+          BREAKING: ${{ steps.check.outputs.breaking }}
+          ELIGIBLE_AT: ${{ steps.check.outputs.eligible_at }}
+          ELIGIBLE: ${{ steps.check.outputs.eligible }}
+          DAYS_LEFT: ${{ steps.check.outputs.days_left }}
+        run: |
+          set -euo pipefail
+
+          NEXT_MAJOR="${NEXT_VERSION%%.*}"
+
+          if [ "${UPSTREAM_CHANGED}" = "true" ]; then
+            hold_reason="in case another upstream fix lands right behind it"
+          else
+            hold_reason="so a breaking change is not cut the moment it is merged"
+          fi
+
+          if [ "${ELIGIBLE}" = "true" ]; then
+            status="**Ready to release.** The hold back window is up, so this merges itself on the next scheduled run."
+          else
+            status="**Held back for ${DAYS_LEFT} more day(s)**, until \`${ELIGIBLE_AT}\`, ${hold_reason}. Merge this PR to release sooner."
+          fi
+
+          if [ "${UPSTREAM_CHANGED}" = "true" ]; then
+            headline="Cuts \`v${NEXT_VERSION}\`, moving this repository's release tags from ps3netsrv
+          \`${SHIPPED_PS3NETSRV}\` to [\`${UPSTREAM_VERSION}\`](${UPSTREAM_URL})."
+          else
+            headline="Cuts \`v${NEXT_VERSION}\` for container side changes. ps3netsrv itself stays on
+          [\`${UPSTREAM_VERSION}\`](${UPSTREAM_URL})."
+          fi
+
+          breaking_section=""
+          if [ -n "${BREAKING//[[:space:]]/}" ]; then
+            breaking_section=$(printf '### Breaking changes\n\n%s\n' \
+              "$(sed 's/^/- /' <<<"${BREAKING}")")
+          fi
+
+          body=$(cat <<EOF
+          ${headline}
+
+          |  |  |
+          | --- | --- |
+          | Current release | \`v${SHIPPED_VERSION}\` (ps3netsrv \`${SHIPPED_PS3NETSRV}\`) |
+          | Proposed release | \`v${NEXT_VERSION}\` (ps3netsrv \`${UPSTREAM_VERSION}\`) |
+          | Bump | \`${BUMP}\`, from ${DRIVER} |
+          | Commits since last release | ${COMMIT_COUNT} |
+          | Mergeable from | \`${ELIGIBLE_AT}\` |
+
+          ${breaking_section}
+
+          ${status}
+
+          Nothing here affects what users get from \`latest\`. The images for ps3netsrv
+          \`${UPSTREAM_VERSION}\` are already built and pushed, and \`latest\` already points at
+          them. This PR only moves the \`v${NEXT_MAJOR}\`, \`v${NEXT_MAJOR}.x\`, \`v${NEXT_VERSION}\`
+          tags and cuts the GitHub release.
+
+          If aldostools publishes again before this merges, the PR is rewritten for that
+          version and the window restarts from its publish date.
+
+          <sub>Opened by \`.github/workflows/release.yml\`. Closing it is fine, the next run
+          reopens it.</sub>
+          EOF
+          )
+
+          title="chore(release): v${NEXT_VERSION} (ps3netsrv ${UPSTREAM_VERSION})"
+
+          gh label create release --color 0e8a16 --description "Release PRs" 2>/dev/null || true
+
+          number=$(gh pr list --head "${RELEASE_BRANCH}" --base main --state open \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "${number}" ]; then
+            gh pr edit "${number}" --title "${title}" --body "${body}"
+            echo "Updated PR #${number}"
+          else
+            url=$(gh pr create --head "${RELEASE_BRANCH}" --base main \
+              --title "${title}" --body "${body}" --label release)
+            number="${url##*/}"
+            echo "Opened PR #${number}"
+          fi
+
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+
+      - name: Merge and release
+        if: >-
+          steps.check.outputs.needed == 'true' &&
+          (steps.check.outputs.eligible == 'true' || inputs.release_now)
+        env:
+          GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+          NEXT_VERSION: ${{ steps.check.outputs.next_version }}
+          UPSTREAM_VERSION: ${{ steps.check.outputs.upstream_version }}
+          UPSTREAM_URL: ${{ steps.check.outputs.upstream_url }}
+          BUMP: ${{ steps.check.outputs.bump }}
+          BREAKING: ${{ steps.check.outputs.breaking }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+
+          echo "Merging PR #${PR_NUMBER}..."
+          gh pr merge "${PR_NUMBER}" --squash --delete-branch
+
+          # Tag the merge commit, not whatever main was before
+          git fetch origin main
+          sha=$(git rev-parse origin/main)
+          echo "Releasing v${NEXT_VERSION} at ${sha}"
+
+          breaking_notes=""
+          if [ -n "${BREAKING//[[:space:]]/}" ]; then
+            breaking_notes=$(printf '## Breaking changes\n\n%s\n\nRead these before upgrading.\n' \
+              "$(sed 's/^/- /' <<<"${BREAKING}")")
+          fi
+
+          notes=$(cat <<EOF
+          ${breaking_notes}
+
+          Built against ps3netsrv [\`${UPSTREAM_VERSION}\`](${UPSTREAM_URL}).
+
+          Pull \`shawly/ps3netsrv:v${NEXT_VERSION}\` to pin this release, or
+          \`shawly/ps3netsrv:latest\` to follow whatever the newest ps3netsrv release is.
+          The README lists every tag.
+          EOF
+          )
+
+          gh release create "v${NEXT_VERSION}" \
+            --target "${sha}" \
+            --title "v${NEXT_VERSION}" \
+            --notes "${notes}"

@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/shawly/docker-ps3netsrv#troubleshooting
+    about: Start here. Most reports are a folder structure or permissions problem, and this walks through both.
+
+  - name: ps3netsrv itself (aldostools/ps3netsrv)
+    url: https://github.com/aldostools/ps3netsrv/issues
+    about: Bugs in ps3netsrv itself, not the container. If the standalone binary has the same problem, report it there.
+
+  - name: webMAN-MOD
+    url: https://github.com/aldostools/webMAN-MOD/issues
+    about: Problems with webMAN-MOD on the PS3 side, mounting, or the PS3 not showing games it can reach.
+
+  - name: PS3 NET Server wiki
+    url: https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server
+    about: How the folder structure and .INI files are supposed to look.

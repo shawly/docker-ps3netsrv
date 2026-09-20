@@ -1,0 +1,108 @@
+name: Version bump request
+description: "Please do not. Read this first, it almost certainly does not need reporting."
+title: "[VERSION] "
+labels: ["version-bump"]
+assignees: [shawly]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Please do not open this issue
+
+        **Nothing here is updated by hand.** A workflow checks
+        [aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv/releases) every
+        day, builds the three newest releases for both bases and all architectures, and
+        pushes them. `latest` follows a new upstream release within 14 days, on its own,
+        without anyone asking.
+
+        `edge` is rebuilt daily straight from upstream `master`, so if you want a fix
+        that is committed but not yet released, it is already there:
+
+        ```
+        docker pull shawly/ps3netsrv:edge
+        ```
+
+        **If a build breaks, I already know.** Failed workflow runs email me. You
+        telling me a version is missing adds no information I do not have.
+
+        **So if the version has not moved, one of two things is true:**
+
+        1. Upstream has not released anything new. Check
+           [the upstream releases](https://github.com/aldostools/ps3netsrv/releases)
+           against [the tag list in the README](https://github.com/shawly/docker-ps3netsrv#supported-tags-and-respective-dockerfile-links)
+           before you go any further.
+        2. Something needs a human, and that human is me, and I do not currently have
+           the time or the motivation for it. An issue does not change that. It just
+           means I now have an issue to close as well.
+
+        ### What to do instead
+
+        - **Wait.** It will get done when it gets done.
+        - **Use `edge`**, which tracks upstream `master` and does not wait for me.
+        - **Build it yourself.** `docker build -f alpine.Dockerfile --build-arg BUILD_FROM_GIT=false --build-arg PS3NETSRV_VERSION=<tag> .`
+        - **Send a pull request.** This is by far the fastest route, and it is genuinely welcome.
+
+        ---
+
+        ### The one case that is worth reporting
+
+        The automation can fail *silently*. If it stops proposing releases without any
+        workflow actually failing, no email reaches me and I may not notice for a
+        while. That is a real bug in my automation and I do want to hear about it.
+
+        Everything below is required, and it is deliberately specific. If you cannot
+        fill it in, this is not that case, and you should close this tab.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Confirm you read the above
+      options:
+        - label: I checked the upstream releases against this repo's tag list, and `latest` really is behind.
+          required: true
+        - label: I understand builds are automatic and that failed builds already alert the maintainer.
+          required: true
+        - label: I understand that opening this will not make it happen faster, and that a pull request would.
+          required: true
+        - label: I have checked that no existing issue or open release PR already covers this.
+          required: true
+
+  - type: input
+    id: upstream-release
+    attributes:
+      label: Upstream release that is missing
+      description: The tag from aldostools/ps3netsrv, and the date it was published.
+      placeholder: "e.g. 20261005, published 2026-10-05"
+    validations:
+      required: true
+
+  - type: input
+    id: current-latest
+    attributes:
+      label: What `latest` currently resolves to
+      description: "Run `docker run --rm shawly/ps3netsrv:latest ps3netsrv-mbedtls | head -1` and paste the version it prints."
+      placeholder: "e.g. ps3netsrv build 20260913"
+    validations:
+      required: true
+
+  - type: input
+    id: days-elapsed
+    attributes:
+      label: How many days ago was it published
+      description: >
+        Releases are held for a cooling off period before I cut one of mine, in case
+        another upstream fix lands right behind it. Under two weeks is expected and
+        is not a bug. `latest` should still have moved within a day, though.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Why you think the automation is stuck
+      description: >
+        Link the last run of the Propose release workflow and the last Docker build
+        run. Say what you see there. "The version is old" is not evidence of a stuck
+        workflow, it is the thing you are already reporting.
+    validations:
+      required: true
