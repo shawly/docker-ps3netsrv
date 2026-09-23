@@ -44,9 +44,9 @@ ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
 
 <!-- supported tags will be auto updated through workflows! -->
 <!-- tags start -->
--	[`20260913`, `20260913-alpine`, `20260913-alpine3.24`, `alpine`, `alpine3.24`, `latest`, `v1`, `v1-alpine`, `v1-alpine3.24`, `v1.12`, `v1.12-alpine`, `v1.12-alpine3.24`, `v1.12.0`, `v1.12.0-alpine`, `v1.12.0-alpine3.24`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
+-	[`20260913`, `20260913-alpine`, `20260913-alpine3.24`, `alpine`, `alpine3.24`, `latest`, `v2`, `v2-alpine`, `v2-alpine3.24`, `v2.0`, `v2.0-alpine`, `v2.0-alpine3.24`, `v2.0.0`, `v2.0.0-alpine`, `v2.0.0-alpine3.24`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
 
--	[`20260913-slim`, `20260913-trixie-slim`, `slim`, `trixie-slim`, `v1-slim`, `v1-trixie-slim`, `v1.12-slim`, `v1.12-trixie-slim`, `v1.12.0-slim`, `v1.12.0-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
+-	[`20260913-slim`, `20260913-trixie-slim`, `slim`, `trixie-slim`, `v2-slim`, `v2-trixie-slim`, `v2.0-slim`, `v2.0-trixie-slim`, `v2.0.0-slim`, `v2.0.0-trixie-slim`](https://github.com/shawly/docker-ps3netsrv/blob/main/slim.Dockerfile)
 
 -	[`20250501`, `20250501-alpine`, `20250501-alpine3.24`](https://github.com/shawly/docker-ps3netsrv/blob/main/alpine.Dockerfile)
 
