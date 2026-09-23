@@ -9,7 +9,7 @@
 #
 
 # Build ps3netsrv and stage the s6-overlay rootfs
-FROM alpine:3.23 AS builder
+FROM alpine:3.24 AS builder
 
 # Upstream sources, see https://github.com/aldostools/ps3netsrv
 ARG PS3NETSRV_REPO=https://github.com/aldostools/ps3netsrv.git
@@ -92,7 +92,7 @@ RUN \
   done
 
 # Runtime container
-FROM alpine:3.23
+FROM alpine:3.24
 
 # Copy binaries and the s6-overlay rootfs from the build container
 COPY --from=builder /tmp/ps3netsrv-bin/ps3netsrv-* /usr/bin/
