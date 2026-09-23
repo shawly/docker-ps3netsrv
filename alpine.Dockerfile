@@ -35,11 +35,15 @@ RUN \
     build-base \
     curl \
     git \
-    mbedtls-dev \
     meson \
     musl-dev \
     tar \
-    xz
+    xz && \
+  echo "Installing mbedTLS headers..." && \
+    # Alpine 3.24 moved mbedtls-dev to mbedTLS 4, where aes.h became a private
+    # header that ps3netsrv cannot use. mbedtls3-dev is the 3.x line it targets.
+    # Older Alpine has no mbedtls3-dev, so fall back to mbedtls-dev there.
+    { apk add --no-cache mbedtls3-dev 2>/dev/null || apk add --no-cache mbedtls-dev; }
 
 RUN \
   set -eu && \
@@ -103,9 +107,10 @@ RUN \
     bash \
     coreutils \
     libstdc++ \
-    mbedtls \
     shadow \
     tzdata && \
+  echo "Installing the mbedTLS runtime matching the build..." && \
+    { apk add --no-cache mbedtls3 2>/dev/null || apk add --no-cache mbedtls; } && \
   echo "Creating ps3netsrv user..." && \
     useradd -u 1000 -U -M -s /bin/false ps3netsrv && \
     usermod -G users ps3netsrv && \

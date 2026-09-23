@@ -224,7 +224,18 @@ jobs:
           else
             git commit -m "chore(release): v${NEXT_VERSION} (ps3netsrv ${UPSTREAM_VERSION})"
           fi
-          git push --force origin "${RELEASE_BRANCH}"
+
+          # The branch is rebuilt from main on every run, so the commit hash
+          # changes daily even when nothing else does. Pushing that would
+          # re-trigger the whole PR build for an identical tree, so only push
+          # when the content actually differs or main has moved underneath.
+          if git fetch -q origin "${RELEASE_BRANCH}" 2>/dev/null \
+            && [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "FETCH_HEAD^{tree}")" ] \
+            && git merge-base --is-ancestor origin/main FETCH_HEAD; then
+            echo "Release branch already has this exact tree on top of main, not pushing."
+          else
+            git push --force origin "${RELEASE_BRANCH}"
+          fi
 
       - name: Open or update the release PR
         if: steps.check.outputs.needed == 'true'
@@ -312,7 +323,11 @@ jobs:
             --json number --jq '.[0].number // empty')
 
           if [ -n "${number}" ]; then
-            gh pr edit "${number}" --title "${title}" --body "${body}"
+            # Deliberately REST and not `gh pr edit`: that resolves assignable
+            # users, labels and teams over GraphQL, which needs read:org. The
+            # release token only carries repo and workflow.
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/${number}" \
+              -f title="${title}" -f body="${body}" --silent
             echo "Updated PR #${number}"
           else
             url=$(gh pr create --head "${RELEASE_BRANCH}" --base main \
