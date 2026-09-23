@@ -224,7 +224,15 @@ jobs:
           else
             git commit -m "chore(release): v${NEXT_VERSION} (ps3netsrv ${UPSTREAM_VERSION})"
           fi
-          git push --force origin "${RELEASE_BRANCH}"
+
+          # The hash changes every run, the tree usually does not
+          if git fetch -q origin "${RELEASE_BRANCH}" 2>/dev/null \
+            && [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "FETCH_HEAD^{tree}")" ] \
+            && git merge-base --is-ancestor origin/main FETCH_HEAD; then
+            echo "Release branch already has this exact tree on top of main, not pushing."
+          else
+            git push --force origin "${RELEASE_BRANCH}"
+          fi
 
       - name: Open or update the release PR
         if: steps.check.outputs.needed == 'true'
@@ -312,7 +320,9 @@ jobs:
             --json number --jq '.[0].number // empty')
 
           if [ -n "${number}" ]; then
-            gh pr edit "${number}" --title "${title}" --body "${body}"
+            # gh pr edit needs read:org, the token does not have it
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/${number}" \
+              -f title="${title}" -f body="${body}" --silent
             echo "Updated PR #${number}"
           else
             url=$(gh pr create --head "${RELEASE_BRANCH}" --base main \

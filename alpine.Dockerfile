@@ -35,11 +35,13 @@ RUN \
     build-base \
     curl \
     git \
-    mbedtls-dev \
     meson \
     musl-dev \
     tar \
-    xz
+    xz && \
+  echo "Installing mbedTLS headers..." && \
+    # 3.24 ships mbedTLS 4 as mbedtls-dev, ps3netsrv needs the 3.x headers
+    { apk add --no-cache mbedtls3-dev 2>/dev/null || apk add --no-cache mbedtls-dev; }
 
 RUN \
   set -eu && \
@@ -103,9 +105,10 @@ RUN \
     bash \
     coreutils \
     libstdc++ \
-    mbedtls \
     shadow \
     tzdata && \
+  echo "Installing mbedTLS runtime..." && \
+    { apk add --no-cache mbedtls3 2>/dev/null || apk add --no-cache mbedtls; } && \
   echo "Creating ps3netsrv user..." && \
     useradd -u 1000 -U -M -s /bin/false ps3netsrv && \
     usermod -G users ps3netsrv && \
