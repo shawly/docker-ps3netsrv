@@ -90,6 +90,28 @@ mkdir -p tests/games/unreadable
 chmod 700 tests/games/unreadable
 chown root:root tests/games/unreadable
 
+# Readable only through ACLs, mode bits alone would say no (issue #57)
+if command -v setfacl >/dev/null; then
+    create_dummy_file "PSPISO" "acl_granted" "iso" "root" "root"
+    chmod 600 tests/games/PSPISO/acl_granted.iso
+    setfacl -m g:1000:r tests/games/PSPISO/acl_granted.iso
+    create_dummy_file "PSPISO" "acl_denied" "iso" "root" "root"
+    chmod 600 tests/games/PSPISO/acl_denied.iso
+    chmod 700 tests/games/PSPISO
+    chown root:root tests/games/PSPISO
+    setfacl -m g:1000:rx tests/games/PSPISO
+
+    mkdir -p tests/games/DVDISO
+    chmod 700 tests/games/DVDISO
+    chown root:root tests/games/DVDISO
+    setfacl -m u:1000:rx tests/games/DVDISO
+    create_dummy_file "DVDISO" "acl_user" "iso" "root" "root"
+    chmod 600 tests/games/DVDISO/acl_user.iso
+    setfacl -m u:1000:r tests/games/DVDISO/acl_user.iso
+else
+    echo "setfacl not found, skipping ACL cases (install the acl package)"
+fi
+
 create_linked_ini "ROMS" "nobody" "nogroup" <<EOF
 /games/snes
 /games/gba

@@ -109,6 +109,44 @@ jobs:
           rm -rf /tmp/.test-buildx-cache
           mv /tmp/.test-buildx-cache-new /tmp/.test-buildx-cache
 
+      # Runs before the smoke test, whose FIX_PERMISSIONS would erase every case
+      - name: Verify the folder check
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update -qq && sudo apt-get install -y -qq acl >/dev/null
+          sudo bash tests/setup-test-structure.sh >/dev/null
+
+          docker run -d --name ps3netsrv-check \
+            -v "$PWD/tests/games:/games" \
+            ps3netsrv:test
+
+          status=running
+          for _ in $(seq 1 60); do
+            status="$(docker exec ps3netsrv-check cat /run/ps3netsrv/check.status 2>/dev/null || echo running)"
+            [ "${status}" != "running" ] && break
+            sleep 1
+          done
+          logs="$(docker logs ps3netsrv-check 2>&1)"
+          docker rm -f ps3netsrv-check >/dev/null
+          echo "${logs}"
+
+          failed=false
+          function expect() {
+              grep -qF -- "$1" <<< "${logs}" || { echo "::error::missing from log: $1"; failed=true; }
+          }
+          function reject() {
+              ! grep -qF -- "$1" <<< "${logs}" || { echo "::error::unexpected in log: $1"; failed=true; }
+          }
+
+          [ "${status}" = "problems 5" ] || { echo "::error::check status '${status}', expected 'problems 5'"; failed=true; }
+          expect "OK: /games/PSPISO is readable"
+          expect "OK: /games/DVDISO is readable"
+          expect "/games/PSPISO/acl_denied.iso"
+          reject "acl_granted.iso"
+          reject "acl_user.iso"
+          [ "${failed}" = "false" ]
+
       - name: Smoke test the container
         env:
           IS_EDGE: ${{ matrix.release.edge }}

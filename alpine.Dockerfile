@@ -104,6 +104,7 @@ RUN \
   apk add --no-cache \
     bash \
     coreutils \
+    findutils \
     libstdc++ \
     shadow \
     tzdata && \

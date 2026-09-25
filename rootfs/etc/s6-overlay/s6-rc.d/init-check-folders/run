@@ -38,23 +38,16 @@ MAX_LISTED=15
 PS3NETSRV_UID="$(id -u ps3netsrv)"
 PS3NETSRV_GID="$(id -g ps3netsrv)"
 
-declare -a file_ok=( '(' -user "${PS3NETSRV_UID}" -perm -0400 ')' )
-declare -a dir_ok=( '(' -user "${PS3NETSRV_UID}" -perm -0500 ')' )
-for gid in $(id -G ps3netsrv); do
-    file_ok+=( -o '(' -group "${gid}" -perm -0040 ')' )
-    dir_ok+=( -o '(' -group "${gid}" -perm -0050 ')' )
-done
-file_ok+=( -o -perm -0004 )
-dir_ok+=( -o -perm -0005 )
-
+# Runs as ps3netsrv and asks the kernel via access(2), because mode bits lie
+# under ACLs (Synology shows d--------- on folders the user can read fine).
 function find_unreadable() {
     local target="${1:?}"
     shift
-    find "${target}" "$@" \
+    s6-setuidgid ps3netsrv find "${target}" "$@" \
         '(' \
-            '(' -type d '!' '(' "${dir_ok[@]}" ')' ')' \
+            '(' -type d '!' '(' -readable -executable ')' ')' \
             -o \
-            '(' '!' -type d '!' '(' "${file_ok[@]}" ')' ')' \
+            '(' '!' -type d '!' -readable ')' \
         ')' -print 2>/dev/null
 }
 
@@ -202,6 +195,9 @@ if [[ "${#problems[@]}" -gt 0 ]]; then
     echo
     echo "or set PS3NETSRV_FIX_PERMISSIONS=true to let this container rewrite them"
     echo "on every start (it changes your files on the host, so think first)."
+    echo
+    echo "If the host manages access with ACLs (Synology, TrueNAS), grant that uid/gid"
+    echo "read access in the ACL instead, chmod will not help there."
     set_status "problems ${#problems[@]}"
 else
     echo -e "${GREEN}${BOLD}All good.${NC} ps3netsrv can read every folder found in /games."
