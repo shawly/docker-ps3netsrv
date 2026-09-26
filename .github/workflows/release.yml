@@ -12,6 +12,9 @@ name: Propose release
 # that describes itself correctly instead of showing the previous version.
 
 on:
+  push:
+    branches: [main]
+    paths: [".github/release.json"]
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
@@ -37,7 +40,68 @@ permissions:
   contents: read
 
 jobs:
+  # Keyed on release.json, so a human merge releases too
+  release:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Tag and release if release.json names a new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          version=$(jq -r '.version' .github/release.json)
+          ps3netsrv_version=$(jq -r '.ps3netsrv_version' .github/release.json)
+
+          if git rev-parse -q --verify "refs/tags/v${version}^{commit}" >/dev/null; then
+            echo "v${version} is already tagged, nothing to release."
+            exit 0
+          fi
+
+          previous=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          if [ -n "${previous}" ]; then
+            range="${previous}..HEAD"
+          else
+            range=HEAD
+          fi
+          echo "Releasing v${version} from ${range} at ${GITHUB_SHA}"
+
+          breaking=$(git log --format='%s' "${range}" | grep -E '^[a-z]+(\(.+\))?!:' || true)
+          if git log --format='%b' "${range}" | grep -q 'BREAKING CHANGE:'; then
+            breaking="${breaking}${breaking:+$'\n'}$(git log --format='%s' --grep='BREAKING CHANGE:' "${range}")"
+          fi
+          breaking=$(awk 'NF && !seen[$0]++' <<< "${breaking}")
+
+          notes=""
+          if [ -n "${breaking}" ]; then
+            notes=$(printf '## Breaking changes\n\n%s\n\nRead these before upgrading.\n\n' \
+              "$(sed 's/^/- /' <<<"${breaking}")")
+          fi
+          notes="${notes}$(cat <<EOF
+          Built against ps3netsrv [\`${ps3netsrv_version}\`](https://github.com/aldostools/ps3netsrv/releases/tag/${ps3netsrv_version}).
+
+          Pull \`shawly/ps3netsrv:v${version}\` to pin this release, or
+          \`shawly/ps3netsrv:latest\` to follow the newest ps3netsrv release.
+          The README lists every tag.
+          EOF
+          )"
+
+          gh release create "v${version}" \
+            --target "${GITHUB_SHA}" \
+            --title "v${version}" \
+            --notes "${notes}"
+
   propose:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -78,11 +142,18 @@ jobs:
           # Conventional commits since our last release decide the bump for
           # container side changes. "feat!:" or a "BREAKING CHANGE:" footer is
           # major, "feat:" is minor, "fix:" is patch.
-          range="HEAD"
+          # Never all history, a missing tag would revive old breaking commits
           if git rev-parse -q --verify "refs/tags/v${shipped_version}^{commit}" >/dev/null; then
             range="v${shipped_version}..HEAD"
           else
-            echo "No v${shipped_version} tag found, considering all history."
+            previous=$(git tag --list 'v*' --sort=-v:refname | head -1)
+            if [ -n "${previous}" ]; then
+              echo "No v${shipped_version} tag yet, comparing against ${previous}."
+              range="${previous}..HEAD"
+            else
+              echo "No version tags at all, considering all history."
+              range="HEAD"
+            fi
           fi
 
           subjects=$(git log --format='%s' "${range}")
@@ -333,47 +404,16 @@ jobs:
 
           echo "number=${number}" >> "$GITHUB_OUTPUT"
 
-      - name: Merge and release
+      - name: Merge the release PR
         if: >-
           steps.check.outputs.needed == 'true' &&
           (steps.check.outputs.eligible == 'true' || inputs.release_now)
         env:
           GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
-          NEXT_VERSION: ${{ steps.check.outputs.next_version }}
-          UPSTREAM_VERSION: ${{ steps.check.outputs.upstream_version }}
-          UPSTREAM_URL: ${{ steps.check.outputs.upstream_url }}
-          BUMP: ${{ steps.check.outputs.bump }}
-          BREAKING: ${{ steps.check.outputs.breaking }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           set -euo pipefail
 
+          # The merge lands release.json on main, which fires the release job
           echo "Merging PR #${PR_NUMBER}..."
           gh pr merge "${PR_NUMBER}" --squash --delete-branch
-
-          # Tag the merge commit, not whatever main was before
-          git fetch origin main
-          sha=$(git rev-parse origin/main)
-          echo "Releasing v${NEXT_VERSION} at ${sha}"
-
-          breaking_notes=""
-          if [ -n "${BREAKING//[[:space:]]/}" ]; then
-            breaking_notes=$(printf '## Breaking changes\n\n%s\n\nRead these before upgrading.\n' \
-              "$(sed 's/^/- /' <<<"${BREAKING}")")
-          fi
-
-          notes=$(cat <<EOF
-          ${breaking_notes}
-
-          Built against ps3netsrv [\`${UPSTREAM_VERSION}\`](${UPSTREAM_URL}).
-
-          Pull \`shawly/ps3netsrv:v${NEXT_VERSION}\` to pin this release, or
-          \`shawly/ps3netsrv:latest\` to follow whatever the newest ps3netsrv release is.
-          The README lists every tag.
-          EOF
-          )
-
-          gh release create "v${NEXT_VERSION}" \
-            --target "${sha}" \
-            --title "v${NEXT_VERSION}" \
-            --notes "${notes}"
