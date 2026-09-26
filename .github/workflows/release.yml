@@ -101,7 +101,8 @@ jobs:
             --notes "${notes}"
 
   propose:
-    if: github.event_name != 'push'
+    needs: release
+    if: ${{ !failure() && !cancelled() && github.event_name != 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -156,9 +157,11 @@ jobs:
             fi
           fi
 
-          subjects=$(git log --format='%s' "${range}")
-          bodies=$(git log --format='%b' "${range}")
-          commit_count=$(git rev-list --count "${range}")
+          # Only paths that land in the image justify a version
+          image_paths=(alpine.Dockerfile slim.Dockerfile rootfs)
+          subjects=$(git log --format='%s' "${range}" -- "${image_paths[@]}")
+          bodies=$(git log --format='%b' "${range}" -- "${image_paths[@]}")
+          commit_count=$(git rev-list --count "${range}" -- "${image_paths[@]}")
 
           commit_bump=none
           if grep -qE '^[a-z]+(\(.+\))?!:' <<< "${subjects}" || grep -q 'BREAKING CHANGE:' <<< "${bodies}"; then
@@ -169,7 +172,7 @@ jobs:
             commit_bump=patch
           fi
 
-          echo "${commit_count} commit(s) since v${shipped_version}, conventional commits suggest: ${commit_bump}"
+          echo "${commit_count} commit(s) in ${range}, conventional commits suggest: ${commit_bump}"
 
           # Upstream moving is worth a minor on its own
           upstream_bump=none
@@ -196,7 +199,7 @@ jobs:
           fi
 
           if [ "${bump}" = "none" ]; then
-            echo "Nothing to release: upstream unchanged and no feat/fix/breaking commits since v${shipped_version}."
+            echo "Nothing to release: upstream unchanged and no feat/fix/breaking commits in ${range}."
             echo "needed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -236,9 +239,9 @@ jobs:
           fi
 
           # Breaking commits are worth spelling out in the PR and the release notes
-          breaking=$(git log --format='%s' "${range}" | grep -E '^[a-z]+(\(.+\))?!:' || true)
+          breaking=$(git log --format='%s' "${range}" -- "${image_paths[@]}" | grep -E '^[a-z]+(\(.+\))?!:' || true)
           if grep -q 'BREAKING CHANGE:' <<< "${bodies}"; then
-            breaking="${breaking}${breaking:+$'\n'}$(git log --format='%s' --grep='BREAKING CHANGE:' "${range}")"
+            breaking="${breaking}${breaking:+$'\n'}$(git log --format='%s' --grep='BREAKING CHANGE:' "${range}" -- "${image_paths[@]}")"
           fi
           # A commit can carry both the ! marker and the footer, list it once
           breaking=$(awk 'NF && !seen[$0]++' <<< "${breaking}")
@@ -264,6 +267,22 @@ jobs:
             echo "${breaking}"
             echo "EOF_BREAKING"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Close a stale release PR
+        if: steps.check.outputs.needed == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Left behind when a release lands by another route
+          number=$(gh pr list --head "${RELEASE_BRANCH}" --base main --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "${number}" ]; then
+            gh pr close "${number}" --delete-branch \
+              --comment "Superseded: the version it proposed is already released."
+            echo "Closed stale PR #${number}"
+          fi
 
       - name: Build the release branch
         if: steps.check.outputs.needed == 'true'
