@@ -343,6 +343,7 @@ be given the container.
 ## Troubleshooting
 
 First things first, if you have any kind of issue please try to use [the standalone version](https://github.com/aldostools/ps3netsrv/releases) of ps3netsrv and try to reproduce the issue. If you have the same issue with the standalone version, it's better to create an issue on the [ps3netsrv repo](https://github.com/aldostools/ps3netsrv/issues).
+If the standalone version works but the container doesn't, try the `slim` variant before anything else. It runs on Debian with glibc instead of Alpine with musl, see [Choosing a base](#choosing-a-base).
 
 ### webMAN-MOD can't see or read games from ps3netsrv
 
@@ -412,6 +413,12 @@ If the port is not the issue, it might be the latest build of ps3netsrv, try out
 This is an issue related to the latest UnRAID version, the splitting mechanism of shfs seems to be incompatible with ps3netsrv, take a look at [this issue](https://github.com/aldostools/webMAN-MOD/issues/333), at the bottom you can find some workarounds.
 If you do not have UnRAID but some other filesystem please test [the standalone version](https://github.com/aldostools/ps3netsrv/releases) of ps3netsrv before creating an issue here.
 If the issue also happens with the ps3netsrv standalone on a standard ext4 filesystem, your games are likely to be corrupted or you don't own the files **within** your games folders, check permissions and/or make new backups.
+
+### Synology NAS
+
+I don't own a Synology, so there is no support for DSM specific issues.
+
+Access your DSM user has through a group, like `administrators`, does not carry over into the container. Give the user from `PUID` explicit read permission on the shared folder in DSM (Control Panel > Shared Folder > Edit > Permissions) and keep `PGID=100`. Modes like `d---------` in `ls -l` are normal on DSM shares.
 
 ## Support or Contact
 
