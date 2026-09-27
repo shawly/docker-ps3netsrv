@@ -189,8 +189,8 @@ of this parameter has the format `<VARIABLE_NAME>=<VALUE>`.
 | `PS3NETSRV_WHITELIST` | Whitelist IPs e.g. `192.168.1.*` or `192.168.1.10-192.168.1.200`, this probably only works with network_mode host!                  | ``        |
 | `PS3NETSRV_BINARY`    | Which build to run: `mbedtls` (links the system mbedTLS) or `polarssl` (upstream's `Makefile.linux`, bundled AES). Try the other one if decryption misbehaves. | `mbedtls` |
 | `UMASK`               | umask applied to the ps3netsrv process.                                                                                            | `022`     |
-| `PS3NETSRV_SKIP_CHECKS` | Set to `true` to skip the startup check of the `/games` folder structure and permissions.                                        | `false`   |
-| `PS3NETSRV_FIX_PERMISSIONS` | Set to `true` to have the container chown and chmod everything under `/games` on startup. Destructive, off by default.        | `false`   |
+| `PS3NETSRV_SKIP_CHECKS` | Set to `true` to skip the startup check of the `/games` folder structure and permissions. Leave it off, the check points out permission problems. Only skip it if it reports problems ps3netsrv does not actually have. | `false`   |
+| `PS3NETSRV_FIX_PERMISSIONS` | Set to `true` to have the container chown and chmod everything under `/games` on startup. Destructive, off by default. Does nothing on ACL based shares like Synology or TrueNAS/FreeNAS, fix the ACLs there yourself. | `false`   |
 | `PS3NETSRV_FOLDER_PERMISSIONS` | Mode applied to directories when `PS3NETSRV_FIX_PERMISSIONS` is `true`.                                                   | `755`     |
 | `PS3NETSRV_FILE_PERMISSIONS` | Mode applied to files when `PS3NETSRV_FIX_PERMISSIONS` is `true`.                                                           | `644`     |
 | `TZ`                  | [TimeZone] of the container. Timezone can also be set by mapping `/etc/localtime` between the host and the container.               | `Etc/UTC` |
