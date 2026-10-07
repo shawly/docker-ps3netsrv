@@ -77,7 +77,7 @@ build date is the version, the base image version is part of the tag, and
 | `20260913-trixie-slim`       | ps3netsrv 20260913 on Debian trixie slim. Fully pinned.     |
 | `20260913-slim`, `slim`      | The Debian slim variant, following the current suite.       |
 | `v1`, `v1.11`, `v1.11.0`     | This repository's own release tags, with `-slim` variants.  |
-| `edge`                       | Built from upstream `master`, rebuilt daily.                |
+| `edge`                       | Built from upstream `master` whenever it moves.             |
 
 ### Choosing a base
 
@@ -89,7 +89,7 @@ build date is the version, the base image version is part of the tag, and
 ### `shawly/ps3netsrv:edge`
 
 Built from the `master` branch of
-[aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv), rebuilt daily.
+[aldostools/ps3netsrv](https://github.com/aldostools/ps3netsrv), rebuilt when it changes.
 Latest upstream code, not considered stable.
 
 ## Releases

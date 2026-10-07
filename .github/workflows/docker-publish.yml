@@ -223,12 +223,59 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Check whether the published image is current
+        id: fresh
+        env:
+          RELEASE: ${{ toJSON(matrix.release) }}
+          BASE: ${{ toJSON(matrix.base) }}
+          EVENT_NAME: ${{ github.event_name }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+        run: |
+          set -euo pipefail
+
+          version=$(jq -r '.version' <<< "$RELEASE")
+          ref=$(jq -r '.ref' <<< "$RELEASE")
+          dockerfile=$(jq -r '.dockerfile' <<< "$BASE")
+          base_from=$(jq -r '.from' <<< "$BASE")
+          base_tag=$(jq -r '.tag' <<< "$BASE")
+
+          repo_tree=$(git ls-tree HEAD -- "$dockerfile" rootfs | sha256sum | cut -c1-16)
+          base_digest=$(docker buildx imagetools inspect "$base_from" --format '{{json .Manifest}}' \
+            | jq -r '.digest')
+          src_commit=$(git ls-remote "https://github.com/aldostools/ps3netsrv.git" "$ref" \
+            | head -1 | cut -f1)
+          : "${base_digest:?could not resolve digest of ${base_from}}"
+          : "${src_commit:?could not resolve upstream ref ${ref}}"
+
+          fingerprint="tree=${repo_tree} base=${base_digest} src=${src_commit}"
+          echo "Fingerprint: ${fingerprint}"
+
+          stale=true
+          if [ "${EVENT_NAME}" != "workflow_dispatch" ]; then
+            published=$(docker buildx imagetools inspect "${IMAGE}:${version}-${base_tag}" \
+              --format '{{json (index .Image "linux/amd64")}}' 2>/dev/null \
+              | jq -r '.config.Labels["io.github.shawly.ps3netsrv.fingerprint"] // empty' || true)
+            echo "Published:   ${published:-none}"
+            if [ "${published}" = "${fingerprint}" ]; then
+              echo "Image content unchanged, retagging instead of rebuilding."
+              stale=false
+            fi
+          fi
+
+          {
+            echo "fingerprint=${fingerprint}"
+            echo "source_tag=${version}-${base_tag}"
+            echo "stale=${stale}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
+        if: steps.fresh.outputs.stale == 'true'
         uses: docker/setup-qemu-action@v4
         with:
           platforms: all
 
       - name: Set up Docker Buildx
+        if: steps.fresh.outputs.stale == 'true'
         id: buildx
         uses: docker/setup-buildx-action@v4
 
@@ -255,6 +302,7 @@ jobs:
 
           {
             echo "tags=${image_tags}"
+            echo "tag_list=${tags[*]}"
             echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           } >> "$GITHUB_OUTPUT"
 
@@ -272,6 +320,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Docker layers
+        if: steps.fresh.outputs.stale == 'true'
         uses: actions/cache@v6
         with:
           path: /tmp/.buildx-cache
@@ -281,6 +330,7 @@ jobs:
             ${{ runner.os }}-buildx-${{ matrix.base.name }}-
 
       - name: Build and push
+        if: steps.fresh.outputs.stale == 'true'
         uses: docker/build-push-action@v7
         with:
           builder: ${{ steps.buildx.outputs.name }}
@@ -304,6 +354,7 @@ jobs:
             org.opencontainers.image.version=${{ matrix.release.version }}
             org.opencontainers.image.base.name=${{ matrix.base.name }}
             org.opencontainers.image.licenses=${{ env.IMAGE_LICENSE }}
+            io.github.shawly.ps3netsrv.fingerprint=${{ steps.fresh.outputs.fingerprint }}
           annotations: |
             org.opencontainers.image.title=${{ env.IMAGE_TITLE }}
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
@@ -322,9 +373,27 @@ jobs:
       # https://github.com/docker/build-push-action/issues/252
       # https://github.com/moby/buildkit/issues/1896
       - name: Move cache
+        if: steps.fresh.outputs.stale == 'true'
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Retag the existing image
+        if: steps.fresh.outputs.stale == 'false'
+        env:
+          SOURCE_TAG: ${{ steps.fresh.outputs.source_tag }}
+          TAGS: ${{ steps.prep.outputs.tag_list }}
+        run: |
+          set -euo pipefail
+
+          for image in "docker.io/${{ github.repository_owner }}/${IMAGE_NAME}" \
+                       "ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"; do
+            args=()
+            for tag in ${TAGS}; do
+              args+=(-t "${image}:${tag}")
+            done
+            docker buildx imagetools create "${args[@]}" "${image}:${SOURCE_TAG}"
+          done
 
   # Regenerate the supported tags table in README.md
   update-readme:

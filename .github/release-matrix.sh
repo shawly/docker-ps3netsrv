@@ -40,11 +40,13 @@ bases=$(jq -cn \
   --arg debian_suite "$debian_suite" '
     [ { name: "alpine",
         dockerfile: "alpine.Dockerfile",
+        from: ("alpine:" + $alpine_version),
         tag: ("alpine" + $alpine_version),
         alias: "alpine",
         default: true },
       { name: "slim",
         dockerfile: "slim.Dockerfile",
+        from: ("debian:" + $debian_suite),
         tag: $debian_suite,
         alias: "slim",
         default: false } ]
