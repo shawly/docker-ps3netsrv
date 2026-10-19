@@ -1,0 +1,40 @@
+name: SMB Compose example
+
+on:
+  push:
+    paths:
+      - examples/smb/**
+      - tests/smb-*
+      - .github/workflows/smb-example.yml
+  pull_request:
+    paths:
+      - examples/smb/**
+      - tests/smb-*
+      - .github/workflows/smb-example.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - shawly/ps3netsrv:20260913-alpine3.24
+          - shawly/ps3netsrv:20260913-trixie-slim
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Samba and enable CIFS on the test host
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends samba cifs-utils
+          sudo systemctl stop smbd nmbd || true
+          sudo modprobe cifs
+      - name: Test real SMB mount, NETISO reads and restart
+        env:
+          PS3NETSRV_IMAGE: ${{ matrix.image }}
+        run: bash tests/smb-smoke.sh
