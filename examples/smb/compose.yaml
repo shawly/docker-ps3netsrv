@@ -1,0 +1,27 @@
+name: ps3netsrv-smb
+
+services:
+  ps3netsrv:
+    image: ${PS3NETSRV_IMAGE:-shawly/ps3netsrv:20260913-alpine3.24}
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Etc/UTC}
+    ports:
+      - "${PS3NETSRV_HOST_PORT:-38008}:38008"
+    volumes:
+      - type: volume
+        source: games
+        target: /games
+        read_only: true
+        volume:
+          nocopy: true
+
+volumes:
+  games:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//${SMB_SERVER:?Set SMB_SERVER in .env}/${SMB_SHARE:?Set SMB_SHARE in .env}"
+      o: "addr=${SMB_SERVER:?Set SMB_SERVER in .env},username=${SMB_USERNAME:?Set SMB_USERNAME in .env},password=${SMB_PASSWORD:?Set SMB_PASSWORD in .env},domain=${SMB_DOMAIN:-WORKGROUP},vers=${SMB_VERSION:-3.0},uid=${PUID:-1000},gid=${PGID:-1000},forceuid,forcegid,file_mode=0444,dir_mode=0555,ro,nosuid,nodev,noexec"

@@ -35,6 +35,7 @@ ps3netsrv for webMAN-MOD by [aldostools](https://github.com/aldostools). Binarie
     - [Ports](#ports)
     - [Changing Parameters of a Running Container](#changing-parameters-of-a-running-container)
   - [Docker Compose File](#docker-compose-file)
+    - [SMB share with Docker Compose](#smb-share-with-docker-compose)
   - [Docker Image Update](#docker-image-update)
   - [User/Group IDs](#usergroup-ids)
   - [Troubleshooting](#troubleshooting)
@@ -288,6 +289,19 @@ services:
     volumes:
       - "$HOME/ps3games:/games:rw"
 ```
+
+### SMB share with Docker Compose
+
+If your games are on a separate SMB server, use the
+[SMB Compose example](examples/smb/README.md). Its `.env.example` configures the
+server, share, credentials, SMB version, and container UID/GID. Docker mounts
+the share read-only at `/games` before starting the existing image; no extra
+mount privileges are needed inside the container.
+
+This requires a Linux Docker host with CIFS support. The example documents
+credential visibility, startup failures, and recreating the volume after
+changing its configuration. For a library already on the Docker host (including
+a local TrueNAS dataset), use the bind mount above.
 
 ## Docker Image Update
 
