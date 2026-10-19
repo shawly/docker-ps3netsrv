@@ -57,7 +57,9 @@ cat >"${TEST_DIR}/smb.conf" <<EOF
 EOF
 # Public, disposable fixture credentials; deliberately exercise $ and #.
 printf '%s\n' 'test$with#hash' 'test$with#hash' | sudo smbpasswd -c "${TEST_DIR}/smb.conf" -s -a ps3smbtest
-sudo smbd --foreground --no-process-group --configfile="${TEST_DIR}/smb.conf" &
+# Samba signals its process group during shutdown. Give the test server its
+# own session so cleanup cannot terminate the calling shell or CI runner.
+setsid sudo smbd --foreground --no-process-group --configfile="${TEST_DIR}/smb.conf" &
 SMBD_PID=$!
 cat >"${TEST_DIR}/.env" <<'EOF'
 SMB_SERVER=127.0.0.1

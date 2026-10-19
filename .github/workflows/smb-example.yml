@@ -27,7 +27,7 @@ jobs:
           - shawly/ps3netsrv:20260913-alpine3.24
           - shawly/ps3netsrv:20260913-trixie-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Samba and enable CIFS on the test host
         run: |
           sudo apt-get update -qq

@@ -112,5 +112,18 @@ If mounting is denied, check host CIFS support, the share name, credentials, SMB
 version, and the host's mount/security policy. If the mount succeeds but games
 are absent, check the folder layout and the SMB account's read permissions.
 
+## Automated verification
+
+The [SMB example workflow](../../.github/workflows/smb-example.yml) runs this
+Compose file against a temporary Samba server on a disposable Linux runner,
+using both Alpine and Debian slim images. It checks an actual CIFS mount,
+read access as the application user, rejected writes, NETISO reads at multiple
+offsets, stop/start recovery, and failure to start with a missing share. Test
+credentials include literal `$` and `#` characters.
+
+The fixture is synthetic data, not a playable game. This verifies the storage
+and network path; game compatibility and behavior on real PS3 hardware still
+depend on webMAN, firmware, the game image, and your network.
+
 See [Docker's CIFS volume documentation](https://docs.docker.com/engine/storage/volumes/#create-cifssamba-volumes)
 and [webMAN's PS3 NET Server guide](https://github.com/aldostools/webMAN-MOD/wiki/~-PS3-NET-Server).
